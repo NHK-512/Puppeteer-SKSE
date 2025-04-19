@@ -48,9 +48,13 @@ extern "C" DLLEXPORT bool SKSEPlugin_Load(const SKSE::LoadInterface* skse) {
 
     //SKSE::GetMessagingInterface()->RegisterListener("SKSE", SKSEMessageHandler);
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
-        AIManager::Initialize();
+        
         if (message->type == SKSE::MessagingInterface::kDataLoaded)
+        {
             RE::ConsoleLog::GetSingleton()->Print("SkyrimAIPlugin has successfully loaded through SKSE!");
+            AIManager::Initialize();
+        }
+        
     });
 
     return true;
