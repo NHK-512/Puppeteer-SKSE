@@ -7,6 +7,6 @@ void Ranger::Assign(RE::Actor* npc)
     if (npc) 
     {
         auto id = npc->GetFormID();
-        CONSOLE_LOG("The NPC {:X} is assigned with Ranger.", id);
+        CONSOLE_LOG("The NPC {} is assigned with Ranger.", npc->GetDisplayFullName());
     }
 }

@@ -7,6 +7,6 @@ void Vanguard::Assign(RE::Actor* npc)
     if (npc) 
     {
         auto id = npc->GetFormID();
-        CONSOLE_LOG("The NPC {:X} is assigned with Vanguard.", id);
+        CONSOLE_LOG("The NPC {} is assigned with Vanguard.", npc->GetDisplayFullName());
     }
 }
