@@ -1,10 +1,11 @@
-// roles/Ranger.cpp
-#include "Ranger.h"
+#include "Leader.h"
 #include <RE/Skyrim.h>
 
-void Ranger::Assign(RE::Actor* npc) {
-    if (npc) {
-        auto id = npc->GetFormID();
-        RE::ConsoleLog::GetSingleton()->Print(fmt::format("The NPC {:X} is assigned with Ranger.", id).c_str());
-    }
+void Leader::Assign(RE::Actor* npc)
+{
+	if (npc)
+	{
+		auto id = npc->GetFormID();
+		CONSOLE_LOG("The NPC {:X} is assigned with Leader.", id);
+	}
 }

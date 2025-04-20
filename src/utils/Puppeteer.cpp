@@ -1,13 +1,4 @@
 #include "Puppeteer.h"
-#include "roles/Leader.h"
-#include "roles/Ranger.h"
-#include "roles/Vanguard.h"
-#include "roles/Striker.h"
-#include "EnemyScanner.h"
-
-#include <unordered_map>
-#include <vector>
-#include <random>
 
 void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 {

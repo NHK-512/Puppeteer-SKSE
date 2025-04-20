@@ -35,7 +35,7 @@ find_package(fmt CONFIG REQUIRED)
 add_library(${PROJECT_NAME} SHARED
     src/main.cpp
     src/AIManager.cpp
- "src/utils/EnemyScanner.h" "src/utils/EnemyScanner.cpp" "src/utils/NearbyAggroedActors.cpp" "src/utils/NearbyAggroedActors.h" "src/PCH.h" "src/utils/Puppeteer.cpp" "src/utils/roles/Ranger.cpp" "src/utils/roles/Vanguard.cpp" "src/utils/roles/Striker.cpp" "src/utils/roles/Ranger.cpp" "src/utils/roles/Ranger.h" "src/utils/roles/Ranger.h" "src/utils/roles/Striker.h")
+ "src/utils/EnemyScanner.h" "src/utils/EnemyScanner.cpp" "src/utils/NearbyAggroedActors.cpp" "src/utils/NearbyAggroedActors.h" "src/PCH.h" "src/utils/Puppeteer.cpp" "src/utils/roles/Ranger.cpp" "src/utils/roles/Vanguard.cpp" "src/utils/roles/Striker.cpp" "src/utils/roles/Ranger.cpp" "src/utils/roles/Ranger.h" "src/utils/roles/Ranger.h" "src/utils/roles/Striker.h" "src/utils/roles/Leader.cpp")
 
 
 #find_package(CommonLibSSE CONFIG REQUIRED)
