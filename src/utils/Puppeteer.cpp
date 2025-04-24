@@ -60,6 +60,9 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 
     RE::Actor* leader = sorted.front();
     Leader::Assign(leader);
+    //testing
+    Leader::Execute(leader);
+
 
     // --- Assign Ranger ---
     for (auto* actor : hostiles) {

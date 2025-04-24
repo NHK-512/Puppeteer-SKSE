@@ -4,4 +4,5 @@
 namespace Leader
 {
 	void Assign(RE::Actor* npc);
+	void Execute(RE::Actor* actor);
 }
