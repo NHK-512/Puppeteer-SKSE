@@ -20,8 +20,13 @@ float scanDistance = 5000;
 //how many seconds that the cylce of the loop run for
 int secondsPerCycle = 60;
 
+bool shutoffPuppeteer = false;
+
+RE::Actor* leader;
+
 namespace AIManager
 {
     void Initialize();
     void RoleControl(RE::Actor* actor);
+    void RoleAssignAndTracker();
 }

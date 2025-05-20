@@ -6,6 +6,8 @@ void AIManager::Initialize()
 {
     CONSOLE_LOG("AIManager Initialized.");
 
+ 
+
     // Start background task
     std::jthread([] 
     {
@@ -34,12 +36,27 @@ void AIManager::Initialize()
                     SKSE::GetTaskInterface()->AddUITask
                     ([] 
                     {
+                        if (currentLeaderID != 0)
+                        {
+                            leader = RE::TESForm::LookupByID(currentLeaderID)->As<RE::Actor>();
+
+                            //checks if the leader is exists or dead
+                            if (!leader || leader->IsDead())
+                                shutoffPuppeteer = true;
+                        }
+
                         auto* player = RE::PlayerCharacter::GetSingleton();
-                        if (player) 
+                        if (player && shutoffPuppeteer == false) 
                         {
                             AIManager::RoleControl(player);
-                            CONSOLE_LOG("RoleControl was called (in combat)");
+                            CONSOLE_LOG("RoleControl was called in combat");
+
                         }
+
+                        //Turns Puppeteer functions back on after skipping its operations 
+                        //due to leader's death
+                        if (shutoffPuppeteer == true)    
+                            shutoffPuppeteer = false;
                     });
                 }
 
@@ -61,7 +78,9 @@ void AIManager::RoleControl(RE::Actor* actor)
     {
         for (auto& id : enemies) {
             if (!previousEnemies.contains(id)) {
-                currentRoles = Puppeteer::AssignRoles(enemies);
+
+                RoleAssignAndTracker();
+
                 CONSOLE_LOG("Roles reassigned due to new hostiles");
                 return;
             }
@@ -69,25 +88,31 @@ void AIManager::RoleControl(RE::Actor* actor)
     }
     else 
     {
-        currentRoles = Puppeteer::AssignRoles(enemies);
-        currentLeaderID = currentRoles.begin()->first;
-        
-        for (auto enemy : enemies)
-        {
-            previousEnemies.insert(enemy);
-        }
-
-        CONSOLE_LOG("Roles initialized");
+        RoleAssignAndTracker();
         return;
     }
 
     //checks if the leader is dead
     if (currentLeaderID != 0) {
-        auto leader = RE::TESForm::LookupByID(currentLeaderID)->As<RE::Actor>();
+        leader = RE::TESForm::LookupByID(currentLeaderID)->As<RE::Actor>();
         if (!leader || leader->IsDead()) {
-            currentRoles = Puppeteer::AssignRoles(enemies);
+            RoleAssignAndTracker();
             CONSOLE_LOG("Roles are reassigned due to lost of Leader");
             return;
         }
     }
+}
+
+void AIManager::RoleAssignAndTracker()
+{
+    currentRoles = Puppeteer::AssignRoles(enemies);
+
+    currentLeaderID = currentRoles.begin()->first;
+
+    for (auto enemy : enemies)
+    {
+        previousEnemies.insert(enemy);
+    }
+
+    CONSOLE_LOG("Roles initialized");
 }
