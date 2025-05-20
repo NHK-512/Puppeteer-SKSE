@@ -4,8 +4,8 @@
 
 std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
 {
-    //auto str_radius = (float)radius;
-    CONSOLE_LOG("Input radius for plugin detection: {:.2f}", radius);
+    //logs scanning distance
+    //CONSOLE_LOG("Input radius for plugin detection: {:.2f}", radius);
 
     std::vector<RE::FormID> hostileIDs;
 
@@ -29,7 +29,7 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
         if (dist <= radius) {
             hostileIDs.push_back(actor->GetFormID());
 
-            SKSE::log::info("Detected hostile NPC: {} (FormID: {:X}) at distance {:.2f}",
+            /*SKSE::log::info("Detected hostile NPC: {} (FormID: {:X}) at distance {:.2f}",
                 actor->GetDisplayFullName(),
                 actor->GetFormID(),
                 dist
@@ -39,7 +39,7 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
                 actor->GetDisplayFullName(),
                 actor->GetFormID(),
                 dist
-            );
+            );*/
         }
         /*else
             CONSOLE_LOG("Hostile NPC detection for info is skipped!");*/

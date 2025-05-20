@@ -12,5 +12,5 @@
 
 namespace Puppeteer 
 {
-	void AssignRoles(const std::vector<RE::FormID>& npcIDs);
+	std::unordered_map<RE::FormID, char> AssignRoles(const std::vector<RE::FormID>& npcIDs);
 }

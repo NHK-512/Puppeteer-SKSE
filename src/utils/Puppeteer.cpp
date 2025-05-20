@@ -1,7 +1,8 @@
 #include "Puppeteer.h"
 
-void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
+std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 {
+    std::unordered_map<RE::FormID, char> roleList;
     std::vector<RE::Actor*> hostiles;
 
     for (auto formID : npcIDs) {
@@ -59,12 +60,13 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
     std::sort(sorted.begin(), sorted.end(), comparator);
 
     RE::Actor* leader = sorted.front();
-    Leader::Assign(leader);
-    //testing
-    Leader::Execute(leader);
+    //Leader::Assign(leader);
+    roleList[leader->GetFormID()] = 'L';
 
 
     // --- Assign Ranger ---
+    //std::vector<RE::Actor*> assignedRangers;
+
     for (auto* actor : hostiles) {
         if (actor == leader) continue;
 
@@ -74,23 +76,28 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
             if (data.first <= 0) continue;
 
             if (const auto weap = item->As<RE::TESObjectWEAP>()) {
-                if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow")) {
-                    Ranger::Assign(actor);
+                if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow")) 
+                {
+                    //Ranger::Assign(actor);
+                    //assignedRangers.push_back(actor);
+                    roleList[actor->GetFormID()] = 'R';
                     break;
                 }
             }
         }
     }
 
+
+
+
     // --- Assign Vanguard ---
-    std::vector<RE::Actor*> assigned;
-    assigned.push_back(leader);
+    std::vector<RE::Actor*> assignedVang;
+    assignedVang.push_back(leader);
 
     for (auto* actor : hostiles) {
         if (actor == leader) continue;
 
         const auto inv = actor->GetInventory();
-        bool hasShield = false;
 
         for (const auto& [item, data] : inv) {
             if (!item || !data.second) continue;
@@ -98,16 +105,16 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 
             if (const auto armor = item->As<RE::TESObjectARMO>()) {
                 if (armor->HasKeywordString("ArmorShield")) {
-                    Vanguard::Assign(actor);
-                    assigned.push_back(actor);
-                    hasShield = true;
+                    //Vanguard::Assign(actor);
+                    assignedVang.push_back(actor);
+                    roleList[actor->GetFormID()] = 'V';
                     break;
                 }
             }
         }
     }
 
-    if (std::count_if(assigned.begin(), assigned.end(), [&](auto* a) { return a != leader; }) == 0) {
+    if (std::count_if(assignedVang.begin(), assignedVang.end(), [&](auto* a) { return a != leader; }) == 0) {
         for (auto* actor : hostiles) {
             if (actor == leader) continue;
 
@@ -118,8 +125,9 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 
                 if (const auto weap = item->As<RE::TESObjectWEAP>()) {
                     if (weap->IsTwoHandedSword() || weap->IsTwoHandedAxe()) {
-                        Vanguard::Assign(actor);
-                        assigned.push_back(actor);
+                        //Vanguard::Assign(actor);
+                        assignedVang.push_back(actor);
+                        roleList[actor->GetFormID()] = 'V';
                         break;
                     }
                 }
@@ -129,11 +137,15 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 
     // --- Assign Vanguard fallback ---
     for (auto* actor : hostiles) {
-        if (std::find(assigned.begin(), assigned.end(), actor) == assigned.end()) {
-            Vanguard::Assign(actor);
-            assigned.push_back(actor);
+        if (std::find(assignedVang.begin(), assignedVang.end(), actor) == assignedVang.end()) {
+            //Vanguard::Assign(actor);
+            //assignedVang.push_back(actor);
+            roleList[actor->GetFormID()] = 'V';
         }
     }
+
+    auto* player = RE::PlayerCharacter::GetSingleton();
+    //Ranger::AdjustRangerTactics(assignedRangers, assignedVang, player);
 
     // --- Assign Striker ---
     for (auto* actor : hostiles) {
@@ -157,7 +169,10 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
         }
 
         if (oneHandedCount >= 2) {
-            Striker::Assign(actor);
+            roleList[actor->GetFormID()] = 'S';
+            //Striker::Assign(actor);
         }
     }
+
+    return roleList;
 }

@@ -29,20 +29,22 @@ void Leader::Execute(RE::Actor* actor)
 		CONSOLE_LOG("Leader {:X} was forced into combat with the player.", actor->GetFormID());
 	}*/
 
+	CONSOLE_LOG("The NPC {} is executing Leader behavior.", actor->GetDisplayFullName());
+
+
 	// makes so that the leader fights more intensely
-	auto* avOwner = actor->AsActorValueOwner();
-	if (avOwner) {
-		avOwner->SetActorValue(RE::ActorValue::kAggression, 3.0f);  // Frenzied
-		avOwner->SetActorValue(RE::ActorValue::kConfidence, 4.0f);  // Foolhardy
-		CONSOLE_LOG("Leader {:X} aggression/confidence boosted.", actor->GetFormID());
-	}
+	//auto* avOwner = actor->AsActorValueOwner();
+	//if (avOwner) {
+	//	avOwner->SetActorValue(RE::ActorValue::kAggression, 3.0f);  // Frenzied
+	//	avOwner->SetActorValue(RE::ActorValue::kConfidence, 4.0f);  // Foolhardy
+	//	CONSOLE_LOG("Leader {} aggression/confidence boosted.", actor->GetDisplayFullName());
+	//}
 
 	// OPTIONAL: If close, encourage power attacks (hypothetical effect)
-	float distance = actor->GetPosition().GetDistance(player->GetPosition());
-	if (distance < 300.0f) {
-		actor->NotifyAnimationGraph("TriggerPowerAttack"); // May not always work; depends on state
-		CONSOLE_LOG("Leader {} is within striking distance, encouraged power attack.", actor->GetFormID());
-	}
+	//float distance = actor->GetPosition().GetDistance(player->GetPosition());
+	//if (distance < 300.0f) {
+	//	actor->NotifyAnimationGraph("TriggerPowerAttack"); // May not always work; depends on state
+	//	CONSOLE_LOG("Leader {} is within striking distance, encouraged power attack.", actor->GetDisplayFullName());
+	//}
 
-	CONSOLE_LOG("The NPC {:X} is executing Leader behavior.", actor->GetFormID());
 }

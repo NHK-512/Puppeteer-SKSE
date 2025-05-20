@@ -49,10 +49,11 @@ std::vector<RE::Actor*> GetNearbyAggroedActors(float maxDistance)
     checkHandleList(processLists->middleLowActorHandles);
     checkHandleList(processLists->lowActorHandles);
 
-    if (result.empty())
+    //logs the result vector
+    /*if (result.empty())
         CONSOLE_LOG("Resulting vector list of hostiles is empty!");
     else
-        CONSOLE_LOG("Resulting vector list has entities inside! Returning!");
+        CONSOLE_LOG("Resulting vector list has entities inside! Returning!");*/
 
     return result;
 }
