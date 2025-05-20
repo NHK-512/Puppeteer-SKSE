@@ -12,10 +12,16 @@ static std::unordered_map<RE::FormID, char> currentRoles;
 static RE::FormID currentLeaderID = 0;
 
 std::vector<RE::FormID> enemies;
+
+//input number is max distance as radius of the scanning area
+//IMPORTANT: MAX DISTANCE AS TO BE HIGH (MINIMUM ~500)
 float scanDistance = 5000;
+
+//how many seconds that the cylce of the loop run for
+int secondsPerCycle = 60;
 
 namespace AIManager
 {
     void Initialize();
-    void ModifyAI(RE::Actor* actor);
+    void RoleControl(RE::Actor* actor);
 }
