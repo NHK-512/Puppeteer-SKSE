@@ -16,13 +16,16 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
     const auto playerPos = player->GetPosition();
 
     // Iterate over all loaded actors (high, low, middle processes)
-    const auto& processLists = *RE::ProcessLists::GetSingleton();
+    //const auto& processLists = *RE::ProcessLists::GetSingleton();
     for (auto* actor : GetNearbyAggroedActors(radius))
     {
         if (!actor || actor == player)
             continue;
 
         if (!actor->IsHostileToActor(player))
+            continue;
+
+        if (actor->IsDead())
             continue;
 
         const auto dist = playerPos.GetDistance(actor->GetPosition());

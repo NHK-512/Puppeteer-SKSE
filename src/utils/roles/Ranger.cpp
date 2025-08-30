@@ -13,9 +13,9 @@ void Ranger::Assign(RE::Actor* npc)
     }
 }
 
-void Ranger::AdjustRangerTactics(const std::vector<RE::Actor*>& rangers, const std::vector<RE::Actor*>& vanguards, RE::Actor* player)
+void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::Actor* player)
 {
-    if (!player || vanguards.empty() || rangers.empty()) return;
+    if (!player || vanguards.empty() || !ranger) return;	
 
     const auto playerPos = player->GetPosition();
 
@@ -29,72 +29,69 @@ void Ranger::AdjustRangerTactics(const std::vector<RE::Actor*>& rangers, const s
     }
 
     // Check each ranger
-    for (auto* ranger : rangers) {
-        if (!ranger) continue;
-        float dist = ranger->GetPosition().GetDistance(playerPos);
-        if (dist < maxVanguardDistance) {
-            PrioritizeDistance(ranger, player, maxVanguardDistance + 250.0f); // 100 units buffer
-        }
-    }
+    float dist = ranger->GetPosition().GetDistance(playerPos);
+	if (dist < maxVanguardDistance) {
+		ranger->InitiateFlee(player, 0, 1, 1, nullptr, nullptr, maxVanguardDistance * 10, maxVanguardDistance * 15);
+	}
 }
 
-void Ranger::PrioritizeDistance(RE::Actor* ranger, RE::Actor* player, float desiredDistance)
-{
-	if (!ranger || !player || ranger->IsDead() || player->IsDead()) {
-		return;
-	}
-
-	RE::NiPoint3 rangerPos = ranger->GetPosition();
-	RE::NiPoint3 playerPos = player->GetPosition();
-	float distance = rangerPos.GetDistance(playerPos);
-
-	static std::unordered_map<RE::FormID, float> originalConfidences;
-
-
-	auto aiOwner = ranger->AsActorValueOwner();
-	if (!aiOwner) {
-		return;
-	}
-
-	auto rangerID = ranger->GetFormID();
-
-	// Store original confidence if not already stored
-	if (!originalConfidences.contains(rangerID)) {
-		originalConfidences[rangerID] = aiOwner->GetActorValue(RE::ActorValue::kConfidence);
-	}
-
-	//auto originalConfidence = aiOwner->GetActorValue(RE::ActorValue::kConfidence);
-
-	// Set to Coward to trigger fleeing behavior
-	if (distance < desiredDistance) {
-		aiOwner->SetActorValue(RE::ActorValue::kConfidence, static_cast<float>(RE::ACTOR_CONFIDENCE::kCowardly));
-		CONSOLE_LOG("Ranger {} is fleeing from player.", rangerID);
-	}
-	//aiOwner->SetActorValue(RE::ActorValue::kConfidence, static_cast<float>(RE::ACTOR_CONFIDENCE::kCowardly));
-	//CONSOLE_LOG("Ranger {} fleeing to maintain distance. Dist: {:.2f}", ranger->GetFormID(), distance);
-
-	// Start a background task to monitor distance
-	std::thread([ranger, player, desiredDistance]() {
-		using namespace std::chrono_literals;
-
-		for (int i = 0; i < 20; ++i) {  // check for up to 10 seconds
-			std::this_thread::sleep_for(500ms);
-
-			if (!ranger->Is3DLoaded() || ranger->IsDead())
-				break;
-
-			auto currentDistance = ranger->GetPosition().GetDistance(player->GetPosition());
-			if (currentDistance >= desiredDistance) {
-				auto aiOwner = ranger->AsActorValueOwner();
-				if (aiOwner) {
-					auto it = originalConfidences.find(ranger->GetFormID());
-					if(it != originalConfidences.end())
-						aiOwner->SetActorValue(RE::ActorValue::kConfidence, it->second);
-
-					CONSOLE_LOG("Ranger {} stopped fleeing. Distance met. New dist: {:.2f}", ranger->GetFormID(), currentDistance);
-				}
-				break;
-			}
-		}
-	}).detach();
-}
+//void Ranger::PrioritizeDistance(RE::Actor* ranger, RE::Actor* player, float desiredDistance)
+//{
+//	if (!ranger || !player || ranger->IsDead() || player->IsDead()) {
+//		return;
+//	}
+//
+//	RE::NiPoint3 rangerPos = ranger->GetPosition();
+//	RE::NiPoint3 playerPos = player->GetPosition();
+//	float distance = rangerPos.GetDistance(playerPos);
+//
+//	static std::unordered_map<RE::FormID, float> originalConfidences;
+//
+//
+//	auto aiOwner = ranger->AsActorValueOwner();
+//	if (!aiOwner) {
+//		return;
+//	}
+//
+//	auto rangerID = ranger->GetFormID();
+//
+//	// Store original confidence if not already stored
+//	if (!originalConfidences.contains(rangerID)) {
+//		originalConfidences[rangerID] = aiOwner->GetActorValue(RE::ActorValue::kConfidence);
+//	}
+//
+//	//auto originalConfidence = aiOwner->GetActorValue(RE::ActorValue::kConfidence);
+//
+//	// Set to Coward to trigger fleeing behavior
+//	if (distance < desiredDistance) {
+//		aiOwner->SetActorValue(RE::ActorValue::kConfidence, static_cast<float>(RE::ACTOR_CONFIDENCE::kCowardly));
+//		CONSOLE_LOG("Ranger {} is fleeing from player.", rangerID);
+//	}
+//	//aiOwner->SetActorValue(RE::ActorValue::kConfidence, static_cast<float>(RE::ACTOR_CONFIDENCE::kCowardly));
+//	//CONSOLE_LOG("Ranger {} fleeing to maintain distance. Dist: {:.2f}", ranger->GetFormID(), distance);
+//
+//	// Start a background task to monitor distance
+//	std::thread([ranger, player, desiredDistance]() {
+//		using namespace std::chrono_literals;
+//
+//		for (int i = 0; i < 20; ++i) {  // check for up to 10 seconds
+//			std::this_thread::sleep_for(500ms);
+//
+//			if (!ranger->Is3DLoaded() || ranger->IsDead())
+//				break;
+//
+//			auto currentDistance = ranger->GetPosition().GetDistance(player->GetPosition());
+//			if (currentDistance >= desiredDistance) {
+//				auto aiOwner = ranger->AsActorValueOwner();
+//				if (aiOwner) {
+//					auto it = originalConfidences.find(ranger->GetFormID());
+//					if(it != originalConfidences.end())
+//						aiOwner->SetActorValue(RE::ActorValue::kConfidence, it->second);
+//
+//					CONSOLE_LOG("Ranger {} stopped fleeing. Distance met. New dist: {:.2f}", ranger->GetFormID(), currentDistance);
+//				}
+//				break;
+//			}
+//		}
+//	}).detach();
+//}

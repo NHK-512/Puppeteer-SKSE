@@ -1,5 +1,14 @@
 #include "Puppeteer.h"
 
+bool skipAssignedRanger(std::unordered_map<RE::FormID, char> roleList, RE::Actor* npc)
+{
+    //if the npc in the list a ranger (R), returns false = skip
+    if (roleList[npc->GetFormID()] == 'R')
+        return 0;
+
+    return 1;
+}
+
 std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
 {
     std::unordered_map<RE::FormID, char> roleList;
@@ -15,7 +24,7 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
     }
 
     if (hostiles.empty()) {
-        return;
+        return roleList;
     }
 
     // --- Assign Leader ---
@@ -24,7 +33,7 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
         const auto avA = a->AsActorValueOwner();
         const auto avB = b->AsActorValueOwner();
 
-        float levelA = a->GetLevel();/*avA->GetActorValue(RE::ActorValue::kLevel);*/
+        float levelA = a->GetLevel();
         float levelB = b->GetLevel();
         if (levelA != levelB)
             return levelA > levelB;
@@ -60,13 +69,11 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
     std::sort(sorted.begin(), sorted.end(), comparator);
 
     RE::Actor* leader = sorted.front();
-    //Leader::Assign(leader);
+    Leader::Assign(leader);
     roleList[leader->GetFormID()] = 'L';
 
 
     // --- Assign Ranger ---
-    //std::vector<RE::Actor*> assignedRangers;
-
     for (auto* actor : hostiles) {
         if (actor == leader) continue;
 
@@ -78,8 +85,6 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
             if (const auto weap = item->As<RE::TESObjectWEAP>()) {
                 if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow")) 
                 {
-                    //Ranger::Assign(actor);
-                    //assignedRangers.push_back(actor);
                     roleList[actor->GetFormID()] = 'R';
                     break;
                 }
@@ -105,7 +110,6 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
 
             if (const auto armor = item->As<RE::TESObjectARMO>()) {
                 if (armor->HasKeywordString("ArmorShield")) {
-                    //Vanguard::Assign(actor);
                     assignedVang.push_back(actor);
                     roleList[actor->GetFormID()] = 'V';
                     break;
@@ -125,7 +129,6 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
 
                 if (const auto weap = item->As<RE::TESObjectWEAP>()) {
                     if (weap->IsTwoHandedSword() || weap->IsTwoHandedAxe()) {
-                        //Vanguard::Assign(actor);
                         assignedVang.push_back(actor);
                         roleList[actor->GetFormID()] = 'V';
                         break;
@@ -137,42 +140,255 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
 
     // --- Assign Vanguard fallback ---
     for (auto* actor : hostiles) {
-        if (std::find(assignedVang.begin(), assignedVang.end(), actor) == assignedVang.end()) {
-            //Vanguard::Assign(actor);
-            //assignedVang.push_back(actor);
+        if (std::find(assignedVang.begin(), assignedVang.end(), actor) == assignedVang.end() &&
+            skipAssignedRanger(roleList, actor))
+        {
             roleList[actor->GetFormID()] = 'V';
         }
     }
+    return roleList;
+}
 
-    auto* player = RE::PlayerCharacter::GetSingleton();
-    //Ranger::AdjustRangerTactics(assignedRangers, assignedVang, player);
+#pragma region Ranger Utilities
+void Puppeteer::rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player)
+{
+    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
 
-    // --- Assign Striker ---
-    for (auto* actor : hostiles) {
-        if (actor == leader) continue;
+    for (int iR = 0; iR < rangers.size(); iR++)
+    {
+        Ranger::KeepDistanceAwayPlayer(
+            rangers[iR],
+            ActorUtils::extractActorsFromRoles(roles, 'V'),
+            player
+        );
+    }
+}
 
-        const auto inv = actor->GetInventory();
-        int oneHandedCount = 0;
+bool ifRoleIsDead(std::vector<RE::Actor*> actors)
+{
+    int deathCount = 0;
 
-        for (const auto& [item, data] : inv) {
-            if (!item || !data.second) continue;
-            if (data.first <= 0) continue;
+    if (actors.size() == 0)
+        return 0;
 
-            if (const auto weap = item->As<RE::TESObjectWEAP>()) {
-                if (weap->IsOneHandedSword() ||
-                    weap->IsOneHandedAxe() ||
-                    weap->IsOneHandedDagger() ||
-                    weap->IsOneHandedMace()) {
-                    oneHandedCount++;
-                }
-            }
-        }
-
-        if (oneHandedCount >= 2) {
-            roleList[actor->GetFormID()] = 'S';
-            //Striker::Assign(actor);
+    for (int i = 0; i < actors.size(); i++)
+    {
+        if (actors[i]->IsDead())
+        {
+            deathCount++;
         }
     }
 
-    return roleList;
+    if (deathCount == actors.size())
+        return 1;
+    return 0;
+}
+
+struct BowEntry {
+    RE::TESObjectREFR* ref;
+    float distanceSquared;
+};
+
+RE::TESObjectREFR* getClosestBowToActor(RE::Actor* npc)
+{
+    if (!npc) {
+        return nullptr;
+    }
+
+    const auto npcPos = npc->GetPosition();
+    std::vector<BowEntry> foundBows;
+
+    auto [formMap, lock] = RE::TESForm::GetAllForms();
+    if (!formMap) {
+        return nullptr;
+    }
+
+    RE::BSReadWriteLock locker(lock.get());
+    for (auto& [formID, form] : *formMap) {
+        if (!form) {
+            continue;
+        }
+
+        // We're only interested in placed object references
+        auto* ref = skyrim_cast<RE::TESObjectREFR*>(form);
+        if (!ref || !ref->Is3DLoaded() || ref->IsDisabled()) {
+            continue;
+        }
+
+        auto* base = ref->GetBaseObject();
+        auto* weapon = base ? base->As<RE::TESObjectWEAP>() : nullptr;
+        if (!weapon || !weapon->IsBow()) {
+            continue;
+        }
+
+        float distSq = ref->GetPosition().GetSquaredDistance(npcPos);
+        foundBows.push_back({ ref, distSq });
+    }
+
+    if (foundBows.empty()) {
+        return nullptr;
+    }
+
+    auto closest = std::min_element(
+        foundBows.begin(),
+        foundBows.end(),
+        [](const BowEntry& a, const BowEntry& b) {
+            return a.distanceSquared < b.distanceSquared;
+        });
+
+    return closest->ref;
+}
+
+RE::TESAmmo* getArrowRefFromRangerCorpse(RE::Actor* aliveActor, std::vector<RE::Actor*> rangers)
+{
+    RE::Actor* corpse = ActorUtils::getClosestActorToActor(aliveActor, rangers);
+
+    const auto inv = corpse->GetInventory();
+    for (const auto& [item, data] : inv) {
+        if (!item || !data.second) continue;
+        if (data.first <= 0) continue;
+
+        if (const auto arrow = item->As<RE::TESAmmo>()) {
+            //return arrow;
+            return RE::TESForm::LookupByID(arrow->GetFormID())->As<RE::TESAmmo>();
+        }
+    }
+
+    return nullptr;
+}
+
+RE::TESObjectWEAP* getBowFromRangerBody(RE::Actor* aliveActor, std::vector<RE::Actor*> rangers)
+{
+    RE::Actor* corpse = ActorUtils::getClosestActorToActor(aliveActor, rangers);
+
+    const auto inv = corpse->GetInventory();
+    for (const auto& [item, data] : inv) {
+        if (!item || !data.second) continue;
+        if (data.first <= 0) continue;
+
+        if (const auto weap = item->As<RE::TESObjectWEAP>()) {
+            if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow"))
+                //return weap;
+                return RE::TESForm::LookupByID(weap->GetFormID())->As<RE::TESObjectWEAP>();
+        }
+    }
+
+    return nullptr;
+}
+
+RE::TESAmmo* getArrowRefFromRangerCorpse_2(RE::Actor* aliveActor, std::vector<RE::Actor*> rangers)
+{
+    RE::Actor* corpse = ActorUtils::getClosestActorToActor(aliveActor, rangers);
+
+    return corpse->GetCurrentAmmo();
+}
+
+void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
+{
+    if (!ifRoleIsDead(ActorUtils::extractActorsFromRoles(roles, 'R')))
+    {
+        return;
+    }
+
+#pragma region declarations
+    RE::Actor* vang = ActorUtils::extractActorsFromRoles(roles, 'V').front();
+    auto equipManager = RE::ActorEquipManager::GetSingleton();
+    auto* bowWeap = getBowFromRangerBody(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+    auto* bowRef = getClosestBowToActor(vang);
+#pragma endregion
+    //CONSOLE_LOG("Declaration complete.");
+
+#pragma region reassign to ranger
+    auto vangID = vang->GetFormID();
+    if (roles.find(vangID) != roles.end())
+    {
+        roles.find(vangID)->second = 'R';
+        //CONSOLE_LOG("Reassignment complete");
+    }
+    else
+    {
+        //CONSOLE_LOG("Couldn't find vanguard with FormID:{:X}, exiting reassignment.", vangID);
+        return;
+    }
+#pragma endregion
+
+
+#pragma region Bow equip
+    if (bowRef)
+    {
+        vang->PickUpObject(bowRef, 1, 0, 1);
+    }
+    else if (bowWeap)
+    {
+        //Add bow to inv
+        vang->AddObjectToContainer(bowWeap, nullptr, 1, nullptr);
+
+        //Unequip main weap
+        auto melee = vang->GetEquippedObject(true); // true = right hand
+        if (melee) {
+            equipManager->UnequipObject(vang,
+                RE::TESForm::LookupByID(melee->GetFormID())->As<RE::TESObjectWEAP>());
+        }
+
+        //Equip Bow
+        equipManager->EquipObject(vang, bowWeap);
+        //CONSOLE_LOG("Bow equip successful");
+    }
+#pragma endregion
+
+
+#pragma region Arrow equip
+
+    auto* arrowRef = getArrowRefFromRangerCorpse(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+
+    if (!arrowRef)
+    {
+        arrowRef = getArrowRefFromRangerCorpse_2(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+        if (!arrowRef)
+            arrowRef = RE::TESForm::LookupByID<RE::TESAmmo>(0x1397D);
+    }
+
+    if (arrowRef)
+    {
+        vang->AddObjectToContainer(arrowRef, nullptr, 1, nullptr);
+        equipManager->EquipObject(vang, arrowRef);
+        //CONSOLE_LOG("Arrow equip successful");
+    }
+    //else
+        //CONSOLE_LOG("Arrow equip unsuccessful...");
+
+#pragma endregion
+    //CONSOLE_LOG("End of reassignment");
+}
+
+#pragma endregion
+
+void Puppeteer::Listen(std::unordered_map<RE::FormID, char> &roles, int cycleTime)
+{  
+//#pragma region debug: listing all rangers
+//    if (!roles.empty())
+//    {
+//        CONSOLE_LOG("All rangers: ");
+//        for (auto i : ActorUtils::extractActorsFromRoles(roles, 'R'))
+//            CONSOLE_LOG("{} - {:X}", i->GetDisplayFullName(), i->GetFormID());
+//    }
+//#pragma endregion
+
+    std::jthread([cycleTime, &roles]() {
+        using namespace std::chrono_literals;
+
+
+        for (int i = 0; i < (cycleTime-1) * 2; ++i) {  // check for up to 10 seconds
+            std::this_thread::sleep_for(500ms);
+
+            SKSE::GetTaskInterface()->AddUITask([i, cycleTime, &roles]()
+            {
+                auto* player = RE::PlayerCharacter::GetSingleton();
+                Puppeteer::rangerKeepDistance(roles, player);
+
+                RangerCheckAndReplace(roles);
+            });
+            
+        }
+    }).detach();
 }
