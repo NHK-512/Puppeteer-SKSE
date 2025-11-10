@@ -4,8 +4,8 @@
 #include "roles/Ranger.h"
 #include "roles/Vanguard.h"
 #include "roles/Striker.h"
-#include "EnemyScanner.h"
-#include "ActorUtils.h"
+#include "core_modules/EnemyScanner.h"
+#include "core_modules/ActorUtils.h"
 
 #include <unordered_map>
 #include <vector>

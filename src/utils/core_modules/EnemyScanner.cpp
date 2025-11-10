@@ -1,12 +1,7 @@
 #include "EnemyScanner.h"
-#include "SKSE/SKSE.h"
-#include "NearbyAggroedActors.h"
 
 std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
 {
-    //logs scanning distance
-    //CONSOLE_LOG("Input radius for plugin detection: {:.2f}", radius);
-
     std::vector<RE::FormID> hostileIDs;
 
     auto* player = RE::PlayerCharacter::GetSingleton();
@@ -16,10 +11,12 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
     const auto playerPos = player->GetPosition();
 
     // Iterate over all loaded actors (high, low, middle processes)
-    //const auto& processLists = *RE::ProcessLists::GetSingleton();
     for (auto* actor : GetNearbyAggroedActors(radius))
     {
         if (!actor || actor == player)
+            continue;
+
+        if (!actor->GetRace()->GetPlayable())
             continue;
 
         if (!actor->IsHostileToActor(player))
@@ -44,8 +41,6 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
                 dist
             );*/
         }
-        /*else
-            CONSOLE_LOG("Hostile NPC detection for info is skipped!");*/
     }
 
     return hostileIDs;

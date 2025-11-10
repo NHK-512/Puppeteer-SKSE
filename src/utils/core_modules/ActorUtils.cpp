@@ -1,34 +1,6 @@
 #include "ActorUtils.h"
 
 
-//RE::NiPoint3 posInFrontOfPlayer(RE::PlayerCharacter* player)
-//{
-//    RE::NiPoint3 frontPos = {0, 0, 0};
-//    player = RE::PlayerCharacter::GetSingleton();
-//    if (player) {
-//        auto pos = player->GetPosition();  // NiPoint3
-//        auto rot = player->data.angle;     // x = pitch, z = yaw
-//
-//        float distance = 200.0f;
-//
-//        // Forward direction based on yaw
-//        float yaw = rot.z;
-//        float dx = std::cos(yaw) * distance;
-//        float dy = std::sin(yaw) * distance;
-//
-//        frontPos = {
-//            pos.x + dx,
-//            pos.y + dy,
-//            pos.z
-//        };
-//
-//        return frontPos;
-//    }
-//    else
-//        return frontPos;
-//
-//}
-
 bool ActorUtils::dmgTaken(RE::PlayerCharacter* player, RE::Actor* npc)
 {
 	if (!player)
@@ -90,13 +62,53 @@ std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(std::unordered_map<RE
 	return outVct;
 }
 
-void ActorUtils::FlushDeadActorsFromRoles(std::unordered_map<RE::FormID, char>& roles)
+void ActorUtils::DeadActorsCleanup(
+	std::unordered_map<RE::FormID, char>& roles, 
+	std::unordered_map<RE::FormID, combatStyleProf::mults>& profiles,
+	bool combatEnded
+)
 {
+	if (combatEnded)
+	{
+		roles.clear();
+		profiles.clear();
+		return;
+	}
+
 	if (roles.empty())
 		return;
 
-	std::erase_if(roles, [](const auto& actr) {
-		return RE::TESForm::LookupByID<RE::Actor>(actr.first)->IsDead();
+	if (profiles.empty())
+		return;
+
+	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
+	{
+		if (RE::TESForm::LookupByID<RE::Actor>(i->first)->IsDead())
+		{
+			CombatStyleManager::ReturnCachedSingle(profiles, i->first);
+			roles.erase(i);
 		}
-	);
+	}
+}
+
+void ActorUtils::checkGroupCombatStyle(std::unordered_map<RE::FormID, char> roles)
+{
+	RE::Actor* actor;
+
+	if (roles.size() <= 1)
+		return;
+
+	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
+	{
+		actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
+		auto cmbStyle = actor->GetActorBase()->GetCombatStyle();
+
+		CONSOLE_LOG("Actor {} has style: {} , with ID {:X}", 
+					 actor->GetDisplayFullName(), cmbStyle->GetFormEditorID(), cmbStyle->GetFormID());
+	}
+}
+
+void ActorUtils::csGetModSet(RE::Actor* actor, int type, float newVal)
+{
+
 }

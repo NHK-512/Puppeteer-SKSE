@@ -51,7 +51,7 @@ extern "C" DLLEXPORT bool SKSEPlugin_Load(const SKSE::LoadInterface* skse) {
         
         if (message->type == SKSE::MessagingInterface::kDataLoaded)
         {
-            RE::ConsoleLog::GetSingleton()->Print("SkyrimAIPlugin has successfully loaded through SKSE!");
+            RE::ConsoleLog::GetSingleton()->Print("Puppeteer plugin has successfully loaded.");
             AIManager::Initialize();
         }
         

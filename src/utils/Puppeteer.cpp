@@ -69,9 +69,8 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
     std::sort(sorted.begin(), sorted.end(), comparator);
 
     RE::Actor* leader = sorted.front();
-    Leader::Assign(leader);
+    //Leader::Assign(leader);
     roleList[leader->GetFormID()] = 'L';
-
 
     // --- Assign Ranger ---
     for (auto* actor : hostiles) {
@@ -91,9 +90,6 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
             }
         }
     }
-
-
-
 
     // --- Assign Vanguard ---
     std::vector<RE::Actor*> assignedVang;
@@ -118,7 +114,11 @@ std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE
         }
     }
 
-    if (std::count_if(assignedVang.begin(), assignedVang.end(), [&](auto* a) { return a != leader; }) == 0) {
+    if (std::count_if(assignedVang.begin(), 
+        assignedVang.end(), 
+        [&](auto* a) 
+        { return a != leader; }) == 0) 
+    {
         for (auto* actor : hostiles) {
             if (actor == leader) continue;
 

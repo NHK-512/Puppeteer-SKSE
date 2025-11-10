@@ -1,10 +1,9 @@
 #include "AIManager.h"
-#include "utils/EnemyScanner.h"
-#include "utils/Puppeteer.h"
 
 static void RoleAssignAndTracker()
 {
     currentRoles = Puppeteer::AssignRoles(enemies);
+    //profCollection = CombatStyleManager::AssignAndCache(currentRoles);
 
     if (currentRoles.empty())
     {
@@ -12,34 +11,44 @@ static void RoleAssignAndTracker()
         return;
     }
 
-    currentLeaderID = currentRoles.begin()->first;
-
+    for (auto actor : currentRoles)
+    {
+        if (actor.second == 'L')
+        {
+            currentLeaderID = actor.first; break;
+        }
+    }
+        
     for (auto enemy : enemies)
     {
         previousEnemies.insert(enemy);
     }
 
-    CONSOLE_LOG("Roles initialized");
+    CONSOLE_LOG("Roles and combat styles initialized");
 }
 
 static void RoleControl()
 {
     //Always scans in every cycle
     //Scanner gets list of humanoid hostiles near player
+    scanDistance = ConfigLoader::GetScanDistance();
+    //enemies List constant gets overwritten and updated
     enemies = EnemyScanner::GetHostileNPCsNearPlayer(scanDistance);
 
-    //If starting the fight for the first time
+    //Case 1: If starting the fight for the first time
     if (previousEnemies.empty())
     {
         RoleAssignAndTracker();
         return;
     }
-    //Check for new enemies who joins the fight
+
+    //Case 2: If new enemies joins the fight
     else
     {
         for (auto& id : enemies) {
             if (!previousEnemies.contains(id)) {
 
+                CombatStyleManager::ReturnCached(profCollection.original);
                 RoleAssignAndTracker();
 
                 CONSOLE_LOG("Roles reassigned due to new hostiles");
@@ -48,24 +57,37 @@ static void RoleControl()
         }
     }
 
-
-    //checks if the leader is dead
+    //Case 3: If the leader is dead
     if (currentLeaderID != 0) {
         leader = RE::TESForm::LookupByID(currentLeaderID)->As<RE::Actor>();
         if (!leader || leader->IsDead()) {
+            CombatStyleManager::ReturnCached(profCollection.original);
             RoleAssignAndTracker();
             CONSOLE_LOG("Roles are reassigned due to lost of Leader");
             return;
         }
     }
+
+    //Case 4: if there are dead NPCs in the list but the fight still goes on
+    if (std::any_of(
+        currentRoles.begin(), currentRoles.end(),
+        [](const auto& pair) {
+            return RE::TESForm::LookupByID<RE::Actor>(pair.first)->IsDead();
+        }
+    ))
+    {
+        ////revert dead actor's combat style
+        //profCollection = CombatStyleManager::AssignAndCache(currentRoles);
+        //flush dead actor from the list of roles
+        ActorUtils::DeadActorsCleanup(currentRoles, profCollection.original, false);
+    }
+
+    //Case 5: List stays the same, combat style still updates regularly
+    profCollection = CombatStyleManager::AssignAndCache(currentRoles);
 }
 
 void AIManager::Initialize()
 {
-    CONSOLE_LOG("AIManager Initialized.");
-
-    //wasInCombat = false;
-
     // Start background task
     std::jthread([] 
     {
@@ -85,20 +107,28 @@ void AIManager::Initialize()
 
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (!player || !player->Is3DLoaded())
-                continue;
+                continue;  
+
+            //shut off entire operation if there are too little enemies
+            //if (minimumActors != 0 && !enemies.empty())
+            //{
+            //    if (enemies.size() < minimumActors && player->IsInCombat())
+            //        shutoffAIManager = true;
+            //}
 
             if (player->IsInCombat()) 
             {
-                // Do AI scanning task every few seconds while in combat
                 static auto lastCheck   = std::chrono::steady_clock::now();
                 auto        now         = std::chrono::steady_clock::now();
+                minimumActors = ConfigLoader::GetMinimumActors();
+                secondsPerCycle = ConfigLoader::GetSecondsPerCycle();
 
                 //Checks for 5 seconds since last check and call the function (runs every secondsPerCycle, adjust in header file)
                 //Change 5 for another number if need to be more or less frequent
                 if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck).count() >= secondsPerCycle) 
                 {
-                    cycleCount++;
-                    CONSOLE_LOG("Player entered combat. Starting NPC scan loop. {:x} Cycle. Cycle Duration: {:d}", cycleCount, secondsPerCycle);
+                    //cycleCount++;
+                    CONSOLE_LOG("Cycle Duration: {:d} | Scan Distance: {:f} | Minimum Actors: {:d}", /*cycleCount*/ secondsPerCycle, scanDistance, minimumActors);
 
                     lastCheck = now;
 
@@ -106,6 +136,10 @@ void AIManager::Initialize()
                     ([] 
                     {
                         auto* dataHandler = RE::TESDataHandler::GetSingleton();
+                        auto* player = RE::PlayerCharacter::GetSingleton();
+
+                        //Role control has to be called consistenly, even if Puppeteer is disabled
+                        RoleControl();
 
                         //if a leader has already been assigned
                         if (currentLeaderID != 0)
@@ -120,43 +154,69 @@ void AIManager::Initialize()
                             }
                         }
 
-                        auto* player = RE::PlayerCharacter::GetSingleton();
-
-                        //Role control has to be called consistenly, even if Puppeteer is disabled
-                        RoleControl();
-                        ActorUtils::FlushDeadActorsFromRoles(currentRoles);
-
-                        if (player && shutoffPuppeteer == false) //if player is valid & Puppeteer is allowed to run
+                        //if there are less enemies than the set Minimum
+                        if (!enemies.empty() && minimumActors != 0)
                         {
+                            if (enemies.size() < minimumActors)
+                                shutoffPuppeteer = true;
+                        }
+                        else
+                            CONSOLE_LOG("Enemy list and/or minimum actor is empty for eval");
 
-                            //start Vanguard formation for when more than 1 vangs are present
-
+                        //if player is valid & Puppeteer is allowed to run
+                        if (player && shutoffPuppeteer == false) 
+                        {
                             Puppeteer::Listen(currentRoles, secondsPerCycle);
 
-                            //CONSOLE_LOG("Puppeteer is fully functional");
+                            /*CONSOLE_LOG
+                            (
+                                "Leader: {:X} - {} - Type {}",
+                                currentLeaderID,
+                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)->GetDisplayFullName(),
+                                currentRoles.find(currentLeaderID)->second
+                            );
+                            CONSOLE_LOG(
+                                "Offensive: {:F}; Defensive: {:F}; Circling: {:F}",
+                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)
+                                ->GetActorBase()->GetCombatStyle()->generalData.offensiveMult,
+                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)
+                                ->GetActorBase()->GetCombatStyle()->generalData.defensiveMult,
+                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)
+                                ->GetActorBase()->GetCombatStyle()->closeRangeData.circleMult
+                            );
+
+                            std::ifstream config("Data/SKSE/Plugins/PuppeteerConfig.json");
+                            json j = json::parse(config);
+
+                            CONSOLE_LOG(    
+                                "[JSON] Leader's off: {:F}, def: {:F}, circ: {:F}",
+                                j["roles"]["Leader"].value("offensive", 0.0f),
+                                j["roles"]["Leader"].value("defensive", 0.0f),
+                                j["roles"]["Leader"].value("circle", 0.0f)
+                            );*/
                         }
 
                         //Turns Puppeteer functions back on after skipping its operations 
                         //due to leader's death
                         if (shutoffPuppeteer == true)
                         {
+                            CombatStyleManager::ReturnCached(profCollection.original);
                             shutoffPuppeteer = false;
                             CONSOLE_LOG("Puppeteer is turned back on for next cycle.");
                         }
                     });
-
-
                 }
-
                 wasInCombat = true;
-
-            } else {
+            } 
+            else {
                 if (wasInCombat)
                 {
-                    CONSOLE_LOG("Player exited combat. Stopping scan loop.");
                     wasInCombat = false;
-                    cycleCount = 0;
-                    ActorUtils::FlushDeadActorsFromRoles(currentRoles);
+                    CONSOLE_LOG("Player exited combat. Stopping scan loop.");
+                    //cycleCount = 0;
+                    
+                    ActorUtils::DeadActorsCleanup(currentRoles, profCollection.original, player->IsInCombat());
+                    CombatStyleManager::ReturnCached(profCollection.original);
                 }
             }
 
