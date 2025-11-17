@@ -1,14 +1,16 @@
 {
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "name": "npcbehavior",
-    "version": "1",
+    "version": "0.8.0",
     "dependencies": [
-        "catch2",
-        "fast-cpp-csv-parser",
-        "rsm-binary-io",
-        "simpleini",
-        "spdlog",
-        "xbyak",
-        "rapidcsv"
+        "commonlibsse-ng",
+        {
+            "name": "fmt",
+            "default-features": false
+        },
+        {
+            "name": "spdlog",
+            "default-features": false
+        }
     ]
-
 }

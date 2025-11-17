@@ -5,10 +5,11 @@
 #include <unordered_set>
 #include <algorithm>
 #include "utils/core_modules/EnemyScanner.h"
+#include "utils/core_modules/ConfigLoader.h"
 #include "utils/Puppeteer.h"
 #include "utils/cmbStl_modules/CombatStyleManager.h"
 
- #define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(fmt::format(__VA_ARGS__).c_str())
+#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(std::format(__VA_ARGS__).c_str())
 
 static std::unordered_set<RE::FormID> previousEnemies;
 static std::unordered_map<RE::FormID, char> currentRoles;

@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
-#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(fmt::format(__VA_ARGS__).c_str())
+#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(std::format(__VA_ARGS__).c_str())
 using namespace nlohmann;
 
 static std::filesystem::file_time_type lastModifiedTime = std::filesystem::file_time_type::min();

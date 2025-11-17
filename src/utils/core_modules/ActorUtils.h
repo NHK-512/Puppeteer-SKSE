@@ -4,7 +4,7 @@
 #include "../cmbStl_modules/CombatStyleManager.h"
 #include "../cmbStl_modules/CombatStyleProfiles.h"
 #include <vector>
-#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(fmt::format(__VA_ARGS__).c_str())
+#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(std::format(__VA_ARGS__).c_str())
 
 namespace ActorUtils {
     //RE::NiPoint3 posInFrontOfPlayer(RE::PlayerCharacter player);
