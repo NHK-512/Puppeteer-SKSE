@@ -18,7 +18,10 @@ static RE::FormID currentLeaderID = 0;
 static std::vector<RE::FormID> enemies;
 static std::vector<RE::FormID> previousEnemies;
 static std::unordered_map<RE::FormID, RE::TESCombatStyle*> cacheCmbStl;
+static CombatStyleManager::profileCollection profCollection;
 
+//static std::chrono::steady_clock::time_point lastCheck;
+//static std::chrono::steady_clock::time_point now;
 //input number is max distance as radius of the scanning area
 //IMPORTANT: MAX DISTANCE AS TO BE HIGH (MINIMUM ~500)
 static float scanDistance = 0;
@@ -34,7 +37,6 @@ static int countSinceLeaderDeath = 0;
 static int maxSkipCycles = 0;
 //necessary for the loop not constantly running the functions when combat ends
 static bool wasInCombat = false;
-static CombatStyleManager::profileCollection profCollection;
 
 
 namespace AIManager

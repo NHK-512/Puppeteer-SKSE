@@ -35,57 +35,8 @@ static void RoleControl()
 {
     //Always scans in every cycle
     //Scanner gets list of humanoid hostiles near player
-    scanDistance = ConfigLoader::GetScanDistance();
     //enemies List constant gets overwritten and updated
     enemies = EnemyScanner::GetHostileNPCsNearPlayer(scanDistance);
-    /*
-    //Case 1: If starting the fight for the first time
-    if (previousEnemies.empty())
-    {
-        RoleAssignAndTracker();
-        return;
-    }
-
-    //Case 2: If new enemies joins the fight
-    else
-    {
-        for (auto& id : enemies) {
-            if (!previousEnemies.contains(id)) {
-
-                CombatStyleManager::ReturnCached(profCollection.original);
-                RoleAssignAndTracker();
-
-                CONSOLE_LOG("Roles reassigned due to new hostiles");
-                return;
-            }
-        }
-    }
-
-    //Case 3: If the leader is dead
-    if (currentLeaderID != 0) {
-        leader = RE::TESForm::LookupByID(currentLeaderID)->As<RE::Actor>();
-        if (!leader || leader->IsDead()) {
-            CombatStyleManager::ReturnCached(profCollection.original);
-            RoleAssignAndTracker();
-            CONSOLE_LOG("Roles are reassigned due to lost of Leader");
-            return;
-        }
-    }
-
-    //Case 4: if there are dead NPCs in the list but the fight still goes on
-    if (std::any_of(
-        currentRoles.begin(), currentRoles.end(),
-        [](const auto& pair) {
-            return RE::TESForm::LookupByID<RE::Actor>(pair.first)->IsDead();
-        }
-    ))
-    {
-        //flush dead actor from the list of roles
-        ActorUtils::DeadActorsCleanup(currentRoles, profCollection.original, false);
-    }
-
-    //Case 5: List stays the same, combat style still updates regularly
-    */
 
     //Caching leader of previous cycle to keep track if they are dead or not
     //while keep assigning new leader
@@ -137,6 +88,27 @@ static void RoleControl()
     }
 }
 
+void LoadSettings()
+{
+    using namespace ConfigLoader;
+
+    if (minimumActors   != GetMinimumActors() ||
+        secondsPerCycle != GetSecondsPerCycle() ||
+        maxSkipCycles   != GetSkipCyclesPerCycle()||
+        scanDistance    != GetScanDistance())
+    {
+        minimumActors = GetMinimumActors();
+        secondsPerCycle = GetSecondsPerCycle();
+        maxSkipCycles = GetSkipCyclesPerCycle();
+        scanDistance = GetScanDistance();
+
+        CONSOLE_LOG("[Puppeteer] Cycle Duration: {0:d} | Scan Distance: {1:.1f} | Minimum Actors: {2:d}"
+            , secondsPerCycle
+            , scanDistance
+            , minimumActors);
+    }
+}
+
 void AIManager::Initialize()
 {
     // Start background task
@@ -157,13 +129,20 @@ void AIManager::Initialize()
             if (!player || !player->Is3DLoaded())
                 continue;  
 
+            auto console = RE::UI::GetSingleton();
+            if (console)
+            {
+                if (console->IsMenuOpen("Console"))
+                {
+                    consoleUtils::inspectCBStyleOfSelected(currentRoles);
+                }
+            }
+
             if (player->IsInCombat()) 
             {
                 static auto lastCheck   = std::chrono::steady_clock::now();
                 auto        now         = std::chrono::steady_clock::now();
-                minimumActors = ConfigLoader::GetMinimumActors();
-                secondsPerCycle = ConfigLoader::GetSecondsPerCycle();
-                maxSkipCycles = ConfigLoader::GetSkipCyclesPerCycle();
+                LoadSettings();
 
                 if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck).count() >= secondsPerCycle) 
                 {
@@ -178,11 +157,11 @@ void AIManager::Initialize()
                         //Role control has to be called consistenly, even if Puppeteer is disabled
                         RoleControl();
 
-                        CONSOLE_LOG("Cycle Duration: {0:d} | Scan Distance: {1:f} | Minimum Actors: {2:d} | Available actors: {3:d}"
+                        /*CONSOLE_LOG("Cycle Duration: {0:d} | Scan Distance: {1:f} | Minimum Actors: {2:d} | Available actors: {3:d}"
                             , secondsPerCycle
                             , scanDistance
                             , minimumActors
-                            , enemies.size());
+                            , enemies.size());*/
 
                         if (!currentRoles.empty() ||            //list of enemies is not empty
                              enemies.size() > minimumActors ||  //Enemies is more than minimum
