@@ -365,18 +365,8 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 
 void Puppeteer::Listen(std::unordered_map<RE::FormID, char> &roles, int cycleTime)
 {  
-//#pragma region debug: listing all rangers
-//    if (!roles.empty())
-//    {
-//        CONSOLE_LOG("All rangers: ");
-//        for (auto i : ActorUtils::extractActorsFromRoles(roles, 'R'))
-//            CONSOLE_LOG("{} - {:X}", i->GetDisplayFullName(), i->GetFormID());
-//    }
-//#pragma endregion
-
     std::jthread([cycleTime, &roles]() {
         using namespace std::chrono_literals;
-
 
         for (int i = 0; i < (cycleTime-1) * 2; ++i) {  // check for up to 10 seconds
             std::this_thread::sleep_for(500ms);

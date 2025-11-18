@@ -82,14 +82,18 @@ combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile,
 	return profile;
 }
 
-profileCollection CombatStyleManager::AssignAndCache(std::unordered_map<RE::FormID, char> roleList)
+void CombatStyleManager::AssignAndCache
+(
+	std::unordered_map<RE::FormID, char> roleList,
+	profileCollection &collection
+)
 {
-	profileCollection collection;
+	/*profileCollection collection;
 	std::unordered_map<RE::FormID, combatStyleProf::mults> original;
-	std::unordered_map<RE::FormID, combatStyleProf::mults> modified;
+	std::unordered_map<RE::FormID, combatStyleProf::mults> modified;*/
 
-	if (roleList.size() <= 1)
-		return collection;
+	if (roleList.size() <= ConfigLoader::GetMinimumActors())
+		return;
 
 	for (std::unordered_map<RE::FormID, char>::iterator i = roleList.begin(); i != roleList.end(); i++)
 	{
@@ -99,18 +103,19 @@ profileCollection CombatStyleManager::AssignAndCache(std::unordered_map<RE::Form
 
 		//Caching original styles (will not overwrite existing original style 
 		// on the second cycle onwards
-		if(!original.empty() && original.contains(i->first))
-			original[i->first] = combatStyleProf::initializeGen(cmbStyle);
+
+		//if(!original.empty() && original.contains(i->first))
+		if (!collection.original.contains(i->first))
+			collection.original[i->first] = combatStyleProf::initializeGen(cmbStyle);
 
 		//assigning and caching modified styles.
 		// Will overwrite existing key's values no matter what
-		modified[i->first] = AssignCS(actorBase, original[i->first], i->second);
+		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
 	}
 
-	collection.original = original;
-	collection.modified = modified;
-
-	return collection;
+	//collection.original = original;
+	//collection.modified = modified;
+	//return collection;
 }
 
 void CombatStyleManager::ReturnCached(std::unordered_map<RE::FormID, combatStyleProf::mults> cache)
@@ -119,10 +124,10 @@ void CombatStyleManager::ReturnCached(std::unordered_map<RE::FormID, combatStyle
 		i = cache.begin(); i != cache.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first)->GetActorBase();
-		auto ogStyle = CloneCombatStyle(npc->GetCombatStyle());
-		ogStyle = combatStyleProf::setProfileToStyle(i->second, ogStyle);
+		auto style = CloneCombatStyle(npc->GetCombatStyle());
+		style = combatStyleProf::setProfileToStyle(i->second, style);
 
-		npc->SetCombatStyle(ogStyle);
+		npc->SetCombatStyle(style);
 	}
 }
 

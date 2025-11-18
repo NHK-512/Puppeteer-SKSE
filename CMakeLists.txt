@@ -18,38 +18,33 @@ project(Puppeteer
 # Enable Hot Reload for MSVC compilers if supported.
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(sources
     src/main.cpp
     src/AIManager.cpp
-
     src/utils/Puppeteer.cpp
-
     src/utils/core_modules/EnemyScanner.cpp
     src/utils/core_modules/NearbyAggroedActors.cpp
     src/utils/core_modules/ActorUtils.cpp
     src/utils/core_modules/ConfigLoader.cpp
-
+    src/utils/core_modules/ConsoleUtils.cpp
     src/utils/roles/Leader.cpp
     src/utils/roles/Ranger.cpp
     src/utils/roles/Vanguard.cpp
     src/utils/roles/Striker.cpp
-
     src/utils/cmbStl_modules/CombatStyleManager.cpp
     src/utils/cmbStl_modules/CombatStyleProfiles.cpp
 )
 set(headers
     src/PCH.h
-
     src/utils/core_modules/EnemyScanner.h
     src/utils/core_modules/NearbyAggroedActors.h
     src/utils/core_modules/ActorUtils.h
     src/utils/core_modules/ConfigLoader.h
+    src/utils/core_modules/ConsoleUtils
     src/utils/roles/Leader.h
     src/utils/roles/Ranger.h
     src/utils/roles/Vanguard.h
-    # (Vanguard/Leader/Striker do not seem to have headers?)
-    # Add if they exist
-
     src/utils/cmbStl_modules/CombatStyleManager.h
     src/utils/cmbStl_modules/CombatStyleProfiles.h
 )
@@ -68,26 +63,8 @@ endif()
 
 #add_subdirectory(external/CommonLibSSE)
 add_subdirectory(external/json-develop)
-
 find_package(CommonLibSSE CONFIG REQUIRED)
-#find_package(spdlog CONFIG REQUIRED)
-find_package(fmt CONFIG REQUIRED)
-#add_library(${PROJECT_NAME} SHARED
-#    src/main.cpp
-#    src/AIManager.cpp
-# "src/utils/core_modules/EnemyScanner.h" "src/utils/core_modules/EnemyScanner.cpp" "src/utils/core_modules/NearbyAggroedActors.cpp" "src/utils/core_modules/NearbyAggroedActors.h" "src/PCH.h" "src/utils/Puppeteer.cpp" "src/utils/roles/Ranger.cpp" "src/utils/roles/Vanguard.cpp" "src/utils/roles/Striker.cpp" "src/utils/roles/Ranger.cpp" "src/utils/roles/Ranger.h" "src/utils/roles/Ranger.h" "src/utils/roles/Striker.h" "src/utils/roles/Leader.cpp" "src/utils/core_modules/ActorUtils.cpp" "src/utils/core_modules/ActorUtils.h"  "src/utils/cmbStl_modules/CombatStyleManager.cpp" "src/utils/cmbStl_modules/CombatStyleManager.h" "src/utils/cmbStl_modules/CombatStyleProfiles.h" "src/utils/cmbStl_modules/CombatStyleProfiles.cpp" "src/utils/core_modules/ConfigLoader.cpp" "src/utils/core_modules/ConfigLoader.h")
 add_commonlibsse_plugin(${PROJECT_NAME} SOURCES ${headers} ${sources}) 
-
-
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 target_include_directories(${PROJECT_NAME} PRIVATE external/CommonLibSSE/include)
 target_include_directories(${PROJECT_NAME} PRIVATE external/json-develop/include)
-#target_link_libraries(
-#    ${PROJECT_NAME} 
-#    PRIVATE 
-#    CommonLibSSE::CommonLibSSE
-#)
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        fmt::fmt
-)

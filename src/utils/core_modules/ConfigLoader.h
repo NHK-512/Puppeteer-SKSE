@@ -22,4 +22,6 @@ namespace ConfigLoader
 	int GetScanDistance();
 
 	int GetMinimumActors();
+
+	int GetSkipCyclesPerCycle();
 }

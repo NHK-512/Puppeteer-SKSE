@@ -98,9 +98,22 @@ int ConfigLoader::GetMinimumActors()
 	}
 
 	if (cachedJSON.contains("General"))
-		return cachedJSON["General"].value("MinimumActors", 2);
+		return cachedJSON["General"].value("MinimumActors", 3);
 
-	return 2;
+	return 3;
+}
+
+int ConfigLoader::GetSkipCyclesPerCycle()
+{
+	if (cachedJSON.empty())
+	{
+		cachedJSON = LoadConfigIfChanged();
+	}
+
+	if (cachedJSON.contains("General"))
+		return cachedJSON["General"].value("SkippedCycleAmount", 1);
+
+	return 1;
 }
 
 

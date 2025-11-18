@@ -25,21 +25,12 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
         if (actor->IsDead())
             continue;
 
+        if (actor->AsActorState()->IsBleedingOut())
+            continue;
+
         const auto dist = playerPos.GetDistance(actor->GetPosition());
         if (dist <= radius) {
             hostileIDs.push_back(actor->GetFormID());
-
-            /*SKSE::log::info("Detected hostile NPC: {} (FormID: {:X}) at distance {:.2f}",
-                actor->GetDisplayFullName(),
-                actor->GetFormID(),
-                dist
-            );
-
-            CONSOLE_LOG("Detected hostile NPC: {} (FormID: {:X}) at distance {:.2f}",
-                actor->GetDisplayFullName(),
-                actor->GetFormID(),
-                dist
-            );*/
         }
     }
 

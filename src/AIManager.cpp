@@ -2,29 +2,33 @@
 
 static void RoleAssignAndTracker()
 {
-    currentRoles = Puppeteer::AssignRoles(enemies);
-    //profCollection = CombatStyleManager::AssignAndCache(currentRoles);
-
-    if (currentRoles.empty())
+    if (enemies.empty())
     {
-        CONSOLE_LOG("List of roles is empty. Returning!");
+        if (consoleUtils::TriggerOnce("NO_ACTORS", enemies.empty()))
+            CONSOLE_LOG("[Puppeteer] No eligible enemy is scanned");
         return;
     }
+
+    if (enemies.size() < minimumActors)
+    {
+        if (consoleUtils::TriggerOnce("LESS_ACTORS", enemies.size() < minimumActors))
+            CONSOLE_LOG(
+                "[Puppeteer] Scanned enemies ({0:d}) is less than minimum required ({1:d}).",
+                enemies.size(), minimumActors);
+        return;
+    }
+
+    currentRoles = Puppeteer::AssignRoles(enemies);
 
     for (auto actor : currentRoles)
     {
         if (actor.second == 'L')
         {
-            currentLeaderID = actor.first; break;
+            leader = RE::TESForm::LookupByID(actor.first)->As<RE::Actor>(); break;
         }
     }
         
-    for (auto enemy : enemies)
-    {
-        previousEnemies.insert(enemy);
-    }
-
-    CONSOLE_LOG("Roles and combat styles initialized");
+    previousEnemies = enemies;
 }
 
 static void RoleControl()
@@ -34,7 +38,7 @@ static void RoleControl()
     scanDistance = ConfigLoader::GetScanDistance();
     //enemies List constant gets overwritten and updated
     enemies = EnemyScanner::GetHostileNPCsNearPlayer(scanDistance);
-
+    /*
     //Case 1: If starting the fight for the first time
     if (previousEnemies.empty())
     {
@@ -76,14 +80,61 @@ static void RoleControl()
         }
     ))
     {
-        ////revert dead actor's combat style
-        //profCollection = CombatStyleManager::AssignAndCache(currentRoles);
         //flush dead actor from the list of roles
         ActorUtils::DeadActorsCleanup(currentRoles, profCollection.original, false);
     }
 
     //Case 5: List stays the same, combat style still updates regularly
-    profCollection = CombatStyleManager::AssignAndCache(currentRoles);
+    */
+
+    //Caching leader of previous cycle to keep track if they are dead or not
+    //while keep assigning new leader
+    //Only works from 2nd cycle onwards
+    if (!previousEnemies.empty())
+    {
+        if(leader)
+            leaderCache = leader;
+
+        if (consoleUtils::TriggerOnce("SAME_ENEMIES", previousEnemies == enemies))
+            CONSOLE_LOG("[Puppeteer] List of enemies is the same");
+    }
+
+    if (previousEnemies.empty() || //true if 1st cycle
+        previousEnemies != enemies)//true if dead actors, dead and added new, added new
+    {
+        //To make sure combat styles will be applied on 1st cycle
+        if (previousEnemies.empty())
+            countSinceLeaderDeath = maxSkipCycles; 
+
+        if(leader)
+            if (leader->IsDead())
+                countSinceLeaderDeath = 0;
+
+        if (previousEnemies.empty() && enemies.size() >= minimumActors)
+            CONSOLE_LOG("[Puppeteer] Roles initialized for first cycle");
+        else if (!previousEnemies.empty() && previousEnemies != enemies)
+            CONSOLE_LOG("[Puppeteer] List of enemies have changed");
+
+        RoleAssignAndTracker();
+    }
+    
+    countSinceLeaderDeath++;
+
+    //Don't update combat styles for X amount of cycles if leader is dead 
+    if((!leaderCache || //true if 1st cycle and no leader is cached yet
+        !leaderCache->IsDead()) || 
+        countSinceLeaderDeath > maxSkipCycles
+    )
+        CombatStyleManager::AssignAndCache(currentRoles, profCollection);
+    else
+    {
+        //Revert all actor's roles back to normal
+        CombatStyleManager::ReturnCached(profCollection.original);
+
+        if (consoleUtils::TriggerOnce("DEAD_LEADER", leaderCache->IsDead()))
+            CONSOLE_LOG("[Puppeteer] Detected Leader's death. Skipping total cycles: {0:d}", maxSkipCycles);
+        CONSOLE_LOG("[Puppeteer] Combat Styles reverted & disabled for cycle No.{0:d}", countSinceLeaderDeath);
+    }
 }
 
 void AIManager::Initialize()
@@ -95,10 +146,7 @@ void AIManager::Initialize()
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
             auto* player = RE::PlayerCharacter::GetSingleton();
-            if (player && player->Is3DLoaded()) {
-                CONSOLE_LOG("Player is fully loaded. Starting AI manager loop.");
-                break;
-            }
+            if (player && player->Is3DLoaded()) {break;}
         }
 
         while (true) 
@@ -109,27 +157,16 @@ void AIManager::Initialize()
             if (!player || !player->Is3DLoaded())
                 continue;  
 
-            //shut off entire operation if there are too little enemies
-            //if (minimumActors != 0 && !enemies.empty())
-            //{
-            //    if (enemies.size() < minimumActors && player->IsInCombat())
-            //        shutoffAIManager = true;
-            //}
-
             if (player->IsInCombat()) 
             {
                 static auto lastCheck   = std::chrono::steady_clock::now();
                 auto        now         = std::chrono::steady_clock::now();
                 minimumActors = ConfigLoader::GetMinimumActors();
                 secondsPerCycle = ConfigLoader::GetSecondsPerCycle();
+                maxSkipCycles = ConfigLoader::GetSkipCyclesPerCycle();
 
-                //Checks for 5 seconds since last check and call the function (runs every secondsPerCycle, adjust in header file)
-                //Change 5 for another number if need to be more or less frequent
                 if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck).count() >= secondsPerCycle) 
                 {
-                    //cycleCount++;
-                    CONSOLE_LOG("Cycle Duration: {:d} | Scan Distance: {:f} | Minimum Actors: {:d}", /*cycleCount*/ secondsPerCycle, scanDistance, minimumActors);
-
                     lastCheck = now;
 
                     SKSE::GetTaskInterface()->AddUITask
@@ -141,69 +178,19 @@ void AIManager::Initialize()
                         //Role control has to be called consistenly, even if Puppeteer is disabled
                         RoleControl();
 
-                        //if a leader has already been assigned
-                        if (currentLeaderID != 0)
-                        {
-                            leader = RE::TESForm::LookupByID(currentLeaderID)->As<RE::Actor>();
+                        CONSOLE_LOG("Cycle Duration: {0:d} | Scan Distance: {1:f} | Minimum Actors: {2:d} | Available actors: {3:d}"
+                            , secondsPerCycle
+                            , scanDistance
+                            , minimumActors
+                            , enemies.size());
 
-                            //checks if the leader exists or is dead
-                            if (!leader || leader->IsDead())
-                            {
-                                shutoffPuppeteer = true;
-                                CONSOLE_LOG("Leader is confirmed dead. Puppeteer disabled for this cycle");
-                            }
-                        }
-
-                        //if there are less enemies than the set Minimum
-                        if (!enemies.empty() && minimumActors != 0)
-                        {
-                            if (enemies.size() < minimumActors)
-                                shutoffPuppeteer = true;
-                        }
-                        else
-                            CONSOLE_LOG("Enemy list and/or minimum actor is empty for eval");
-
-                        //if player is valid & Puppeteer is allowed to run
-                        if (player && shutoffPuppeteer == false) 
+                        if (!currentRoles.empty() ||            //list of enemies is not empty
+                             enemies.size() > minimumActors ||  //Enemies is more than minimum
+                            (leader && !leader->IsDead())       //leader is valid not dead (alive)
+                        )
                         {
                             Puppeteer::Listen(currentRoles, secondsPerCycle);
-
-                            /*CONSOLE_LOG
-                            (
-                                "Leader: {:X} - {} - Type {}",
-                                currentLeaderID,
-                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)->GetDisplayFullName(),
-                                currentRoles.find(currentLeaderID)->second
-                            );
-                            CONSOLE_LOG(
-                                "Offensive: {:F}; Defensive: {:F}; Circling: {:F}",
-                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)
-                                ->GetActorBase()->GetCombatStyle()->generalData.offensiveMult,
-                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)
-                                ->GetActorBase()->GetCombatStyle()->generalData.defensiveMult,
-                                RE::TESForm::LookupByID<RE::Actor>(currentLeaderID)
-                                ->GetActorBase()->GetCombatStyle()->closeRangeData.circleMult
-                            );
-
-                            std::ifstream config("Data/SKSE/Plugins/PuppeteerConfig.json");
-                            json j = json::parse(config);
-
-                            CONSOLE_LOG(    
-                                "[JSON] Leader's off: {:F}, def: {:F}, circ: {:F}",
-                                j["roles"]["Leader"].value("offensive", 0.0f),
-                                j["roles"]["Leader"].value("defensive", 0.0f),
-                                j["roles"]["Leader"].value("circle", 0.0f)
-                            );*/
-                        }
-
-                        //Turns Puppeteer functions back on after skipping its operations 
-                        //due to leader's death
-                        if (shutoffPuppeteer == true)
-                        {
-                            CombatStyleManager::ReturnCached(profCollection.original);
-                            shutoffPuppeteer = false;
-                            CONSOLE_LOG("Puppeteer is turned back on for next cycle.");
-                        }
+                        }   
                     });
                 }
                 wasInCombat = true;
