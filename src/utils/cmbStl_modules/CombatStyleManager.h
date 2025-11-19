@@ -10,7 +10,7 @@
 #include "../roles/Striker.h"
 #include "../core_modules/ConfigLoader.h"
 #include "CombatStyleProfiles.h"
-#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(std::format(__VA_ARGS__).c_str())
+#define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
 namespace CombatStyleManager 
 {

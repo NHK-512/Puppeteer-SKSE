@@ -3,7 +3,7 @@
 void IniDefaultJSON()
 {
 	//using namespace ConfigLoader;
-	cachedJSON["General"]["ScanDistance"] = 1000;
+	cachedJSON["General"]["ScanDistance"] = 5000;
 	cachedJSON["General"]["SecondsPerCycle"] = 30;
 	cachedJSON["General"]["SkippedCycleAmount"] = 1;
 	cachedJSON["General"]["MinimumActors"] = 2;
@@ -48,14 +48,14 @@ json ConfigLoader::LoadConfigIfChanged()
 			try {
 				cachedJSON = json::parse(config);
 				lastModifiedTime = currentWriteTime;
-				CONSOLE_LOG("[Puppeteer] Config reloaded successfully.");
+				consoleUtils::Log("[Puppeteer] Config reloaded successfully.");
 			}
 			catch (const json::parse_error& e) {
-				CONSOLE_LOG("[Puppeteer] JSON parse error: {}", e.what());
+				consoleUtils::Log("[Puppeteer] JSON parse error: {}", e.what());
 			}
 		}
 		else {
-			CONSOLE_LOG("[Puppeteer] Failed to open config file.");
+			consoleUtils::Log("[Puppeteer] Failed to open config file.");
 		}
 	}
 
@@ -69,8 +69,16 @@ int ConfigLoader::GetSecondsPerCycle()
 		cachedJSON = LoadConfigIfChanged();
 	}
 	
-	if(cachedJSON.contains("General"))
+	if (cachedJSON.contains("General"))
+	{
+		if (consoleUtils::TriggerOnce("INVALID_SETTING", (
+			!cachedJSON["General"].contains("SecondsPerCycle") ||
+			cachedJSON["General"]["SecondsPerCycle"].is_null()
+		)))
+			consoleUtils::Log("[Puppeteer] SecondsPerCycle invalid! Reverting to default value: 30\n\tPlease check again for typo or incorrect values!");
+
 		return cachedJSON["General"].value("SecondsPerCycle", 30);
+	}
 	
 	return 30;
 }
@@ -85,9 +93,17 @@ int ConfigLoader::GetScanDistance()
 	cachedJSON = LoadConfigIfChanged();
 
 	if (cachedJSON.contains("General"))
-		return cachedJSON["General"].value("ScanDistance", 1000);
+	{
+		if (consoleUtils::TriggerOnce("INVALID_SETTING", (
+			!cachedJSON["General"].contains("ScanDistance") ||
+			cachedJSON["General"]["ScanDistance"].is_null()
+		)))
+			consoleUtils::Log("[Puppeteer] ScanDistance invalid! Reverting to default value: 5000\n\tPlease check again for typo or incorrect values!");
+		
+		return cachedJSON["General"].value("ScanDistance", 5000);
+	}
 
-	return 1000;
+	return 5000;
 }
 
 int ConfigLoader::GetMinimumActors()
@@ -98,7 +114,15 @@ int ConfigLoader::GetMinimumActors()
 	}
 
 	if (cachedJSON.contains("General"))
+	{
+		if (consoleUtils::TriggerOnce("INVALID_SETTING", (
+			!cachedJSON["General"].contains("MinimumActors") ||
+			cachedJSON["General"]["MinimumActors"].is_null()
+		)))
+			consoleUtils::Log("[Puppeteer] MinimumActors invalid! Reverting to default value: 3\n\tPlease check again for typo or incorrect values!");
+		
 		return cachedJSON["General"].value("MinimumActors", 3);
+	}
 
 	return 3;
 }
@@ -111,9 +135,38 @@ int ConfigLoader::GetSkipCyclesPerCycle()
 	}
 
 	if (cachedJSON.contains("General"))
+	{
+		if (consoleUtils::TriggerOnce("INVALID_SETTING",(
+			!cachedJSON["General"].contains("SkippedCycleAmount") ||
+			cachedJSON["General"]["SkippedCycleAmount"].is_null()
+		)))
+			consoleUtils::Log("[Puppeteer] SkippedCycleAmount invalid! Reverting to default value: 1\n\tPlease check again for typo or incorrect values!");
+		
 		return cachedJSON["General"].value("SkippedCycleAmount", 1);
+	}
 
 	return 1;
 }
 
+bool ConfigLoader::GetEnabledLogs()
+{
+	if (cachedJSON.empty())
+	{
+		cachedJSON = LoadConfigIfChanged();
+	}
+
+	if (cachedJSON.contains("General"))
+	{
+		if (consoleUtils::TriggerOnce("INVALID_SETTING", (
+			!cachedJSON["General"].contains("enableLogging") ||
+			cachedJSON["General"]["enableLogging"].is_null()
+			)))
+			consoleUtils::Log("[Puppeteer] enableLogging invalid! Reverting to default value: 0\n[Puppeteer]Please check again for typo or incorrect values!");
+		
+		return cachedJSON["General"].value("enableLogging", false);
+	}
+
+
+	return false;
+}
 

@@ -24,4 +24,6 @@ namespace ConfigLoader
 	int GetMinimumActors();
 
 	int GetSkipCyclesPerCycle();
+
+	bool GetEnabledLogs();
 }

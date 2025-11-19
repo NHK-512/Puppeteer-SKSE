@@ -43,7 +43,7 @@ static void RoleControl()
     //Only works from 2nd cycle onwards
     if (!previousEnemies.empty())
     {
-        if(leader)
+        if(countSinceLeaderDeath > maxSkipCycles)
             leaderCache = leader;
 
         if (consoleUtils::TriggerOnce("SAME_ENEMIES", previousEnemies == enemies))
@@ -63,7 +63,8 @@ static void RoleControl()
 
         if (previousEnemies.empty() && enemies.size() >= minimumActors)
             CONSOLE_LOG("[Puppeteer] Roles initialized for first cycle");
-        else if (!previousEnemies.empty() && previousEnemies != enemies)
+        else if (!previousEnemies.empty() && previousEnemies != enemies &&
+                consoleUtils::TriggerOnce("DIFF_ENEMIES", previousEnemies != enemies))
             CONSOLE_LOG("[Puppeteer] List of enemies have changed");
 
         RoleAssignAndTracker();
@@ -72,11 +73,11 @@ static void RoleControl()
     countSinceLeaderDeath++;
 
     //Don't update combat styles for X amount of cycles if leader is dead 
-    if((!leaderCache || //true if 1st cycle and no leader is cached yet
-        !leaderCache->IsDead()) || 
-        countSinceLeaderDeath > maxSkipCycles
-    )
+    if (countSinceLeaderDeath > maxSkipCycles)
+    {
         CombatStyleManager::AssignAndCache(currentRoles, profCollection);
+        //CONSOLE_LOG("[Puppeteer] Combat Styles modified!");
+    }
     else
     {
         //Revert all actor's roles back to normal

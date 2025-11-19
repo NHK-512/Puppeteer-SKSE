@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <format>
 
-#define CONSOLE_LOG(...) RE::ConsoleLog::GetSingleton()->Print(std::format(__VA_ARGS__).c_str())
+#define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
 static std::unordered_map<RE::FormID, char> currentRoles;
 static RE::FormID currentLeaderID = 0;
