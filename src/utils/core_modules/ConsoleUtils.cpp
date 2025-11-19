@@ -49,14 +49,16 @@ void consoleUtils::inspectCBStyleOfSelected(std::unordered_map<RE::FormID, char>
     auto targetRef = target.get().get();
     if (!targetRef)
     {
-        Log("[Puppeteer] Target Reference is invalid");
+        if(TriggerOnce("INVALID_SELECT", !targetRef))
+            Log("[Puppeteer] Target Reference is invalid");
         return;
     }
 
     RE::Actor* actor = targetRef->As<RE::Actor>();
     if (!actor)
     {
-        Log("[Puppeteer] Target Reference is invalid");
+        if (TriggerOnce("INVALID_ACTOR", !actor))
+            Log("[Puppeteer] Target Reference is invalid");
         return;
     }
 
