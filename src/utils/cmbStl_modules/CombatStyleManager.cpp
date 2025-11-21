@@ -92,7 +92,7 @@ void CombatStyleManager::AssignAndCache
 	std::unordered_map<RE::FormID, combatStyleProf::mults> original;
 	std::unordered_map<RE::FormID, combatStyleProf::mults> modified;*/
 
-	if (roleList.size() <= ConfigLoader::GetMinimumActors())
+	if (roleList.size() < ConfigLoader::GetMinimumActors())
 		return;
 
 	for (std::unordered_map<RE::FormID, char>::iterator i = roleList.begin(); i != roleList.end(); i++)
@@ -120,11 +120,18 @@ void CombatStyleManager::AssignAndCache
 
 void CombatStyleManager::ReturnCached(std::unordered_map<RE::FormID, combatStyleProf::mults> cache)
 {
+	if (cache.empty()) return;
+
 	for (std::unordered_map<RE::FormID, combatStyleProf::mults>::iterator
 		i = cache.begin(); i != cache.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first)->GetActorBase();
+
+		if (!npc) return;
+
 		auto style = CloneCombatStyle(npc->GetCombatStyle());
+
+		if (!style) return;
 		style = combatStyleProf::setProfileToStyle(i->second, style);
 
 		npc->SetCombatStyle(style);
