@@ -12,7 +12,7 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-windows")
 
 project(Puppeteer
-        VERSION 0.8.0
+        VERSION 1.0.0
         LANGUAGES CXX)
 
 # Enable Hot Reload for MSVC compilers if supported.
