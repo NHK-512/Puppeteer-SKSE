@@ -1,10 +1,15 @@
 #pragma once
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
-#include "../cmbStl_modules/CombatStyleManager.h"
+//#include "../cmbStl_modules/CombatStyleManager.h"
 #include "../cmbStl_modules/CombatStyleProfiles.h"
 #include <vector>
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
+
+namespace CombatStyleManager
+{
+    struct profileCollection;
+}
 
 namespace ActorUtils {
     //RE::NiPoint3 posInFrontOfPlayer(RE::PlayerCharacter player);
@@ -16,8 +21,8 @@ namespace ActorUtils {
     //Flushes dead actors from list and return original combat styles
     void DeadActorsCleanup(
         std::unordered_map<RE::FormID, char>& roles,
-        std::unordered_map<RE::FormID, combatStyleProf::mults>& profiles,
-        bool combatEnded
+        CombatStyleManager::profileCollection& collection,
+        bool IsInCombat
     );
     //Gets a RE::Actor base on a target actor
     RE::Actor* getClosestActorToActor(RE::Actor* targetActor, std::vector<RE::Actor*> otherActors);
