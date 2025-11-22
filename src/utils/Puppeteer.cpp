@@ -374,9 +374,11 @@ void Puppeteer::Listen(std::unordered_map<RE::FormID, char> &roles, int cycleTim
             SKSE::GetTaskInterface()->AddUITask([i, cycleTime, &roles]()
             {
                 auto* player = RE::PlayerCharacter::GetSingleton();
-                Puppeteer::rangerKeepDistance(roles, player);
-
-                RangerCheckAndReplace(roles);
+                if(roles.size() > 1)
+                {
+                    Puppeteer::rangerKeepDistance(roles, player);
+                    RangerCheckAndReplace(roles);
+                }
             });
             
         }

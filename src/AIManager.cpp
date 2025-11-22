@@ -9,6 +9,8 @@ static void RoleAssignAndTracker()
         return;
     }
 
+    ActorUtils::DeadActorsCleanup(currentRoles, profCollection, RE::PlayerCharacter::GetSingleton()->IsInCombat());
+
     if (enemies.size() < minimumActors)
     {
         if (consoleUtils::TriggerOnce("LESS_ACTORS", enemies.size() < minimumActors))
@@ -73,7 +75,9 @@ static void RoleControl()
     countSinceLeaderDeath++;
 
     //Don't update combat styles for X amount of cycles if leader is dead 
-    if (countSinceLeaderDeath > maxSkipCycles)
+    if (countSinceLeaderDeath > maxSkipCycles
+        ||
+        enemies.size() >= minimumActors)
     {
         CombatStyleManager::AssignAndCache(currentRoles, profCollection);
         //CONSOLE_LOG("[Puppeteer] Combat Styles modified!");
@@ -81,9 +85,10 @@ static void RoleControl()
     else
     {
         //Revert all actor's roles back to normal
-        CombatStyleManager::ReturnCached(profCollection.original);
+        CombatStyleManager::ReturnCached(currentRoles, profCollection);
 
-        if (consoleUtils::TriggerOnce("DEAD_LEADER", leaderCache->IsDead()))
+        if (!leaderCache && leaderCache->Is3DLoaded() &&
+            consoleUtils::TriggerOnce("DEAD_LEADER", leaderCache->IsDead()))
             CONSOLE_LOG("[Puppeteer] Detected Leader's death. Skipping total cycles: {0:d}", maxSkipCycles);
         CONSOLE_LOG("[Puppeteer] Combat Styles reverted & disabled for cycle No.{0:d}", countSinceLeaderDeath);
     }
@@ -157,8 +162,11 @@ void AIManager::Initialize()
 
                         //Role control has to be called consistenly, even if Puppeteer is disabled
                         RoleControl();
-
-                        /*CONSOLE_LOG("Cycle Duration: {0:d} | Scan Distance: {1:f} | Minimum Actors: {2:d} | Available actors: {3:d}"
+                        /*
+                        CONSOLE_LOG("[Puppeteer] roles: {:d}, ogProfile: {:d}, modProfile: {:d}", currentRoles.size(), profCollection.original.size(), profCollection.modified.size());
+                        CONSOLE_LOG("[Puppeteer] previous enemies: {:d}, enemies: {:d}", enemies.size(), previousEnemies.size());
+                        
+                        CONSOLE_LOG("Cycle Duration: {0:d} | Scan Distance: {1:f} | Minimum Actors: {2:d} | Available actors: {3:d}"
                             , secondsPerCycle
                             , scanDistance
                             , minimumActors
@@ -181,9 +189,10 @@ void AIManager::Initialize()
                     wasInCombat = false;
                     CONSOLE_LOG("Player exited combat. Stopping scan loop.");
                     //cycleCount = 0;
-                    
-                    ActorUtils::DeadActorsCleanup(currentRoles, profCollection.original, player->IsInCombat());
-                    CombatStyleManager::ReturnCached(profCollection.original);
+                    //CONSOLE_LOG("[Puppeteer] BEFORE cleanup. roles: {:d}, ogProfile: {:d}, modProfile: {:d}", currentRoles.size(), profCollection.original.size(), profCollection.modified.size());
+                    CombatStyleManager::ReturnCached(currentRoles, profCollection); 
+                    ActorUtils::DeadActorsCleanup(currentRoles, profCollection, player->IsInCombat());
+                    //CONSOLE_LOG("[Puppeteer] AFTER cleanup. roles: {:d}, ogProfile: {:d}, modProfile: {:d}", currentRoles.size(), profCollection.original.size(), profCollection.modified.size());
                 }
             }
 

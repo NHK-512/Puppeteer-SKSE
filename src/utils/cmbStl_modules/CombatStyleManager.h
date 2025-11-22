@@ -26,7 +26,10 @@ namespace CombatStyleManager
 	//Asssign custom Combat Styles from list and cache original style into output
 	void AssignAndCache(std::unordered_map<RE::FormID, char> roleList, profileCollection& collection);
 	//Accepts a cached list of combatants and revert their styles to original
-	void ReturnCached(std::unordered_map<RE::FormID, combatStyleProf::mults> cachedList);
+	void ReturnCached(
+		std::unordered_map<RE::FormID, char>& currentRoles,
+		profileCollection& collection
+	);
 	//Accepts a cached list of combatants and revert style of a singular actor
 	void ReturnCachedSingle(std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, RE::FormID deadForm);
 }

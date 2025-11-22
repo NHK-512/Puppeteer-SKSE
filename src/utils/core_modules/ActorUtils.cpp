@@ -62,31 +62,55 @@ std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(std::unordered_map<RE
 	return outVct;
 }
 
+bool IsEssentialAndOrProtected(RE::Actor* actor)
+{
+	auto base = actor->GetActorBase();
+	auto state = actor->AsActorState();
+	if (base) {
+		if (base->IsEssential() ||	// Only allies can kill them
+			base->IsProtected())	// Only player cannot kill them, but enemies can
+		{
+			return (state && state->IsBleedingOut()) || actor->IsInKillMove();
+		}
+	}
+
+	return false;
+}
+
 void ActorUtils::DeadActorsCleanup(
 	std::unordered_map<RE::FormID, char>& roles, 
-	std::unordered_map<RE::FormID, combatStyleProf::mults>& profiles,
-	bool combatEnded
+	CombatStyleManager::profileCollection& collection,
+	bool IsInCombat
 )
 {
-	if (combatEnded)
+	if (!IsInCombat )
 	{
-		roles.clear();
-		profiles.clear();
+		if(!roles.empty())
+			roles.clear();
+		if(!collection.original.empty())
+			collection.original.clear();
+		if(!collection.modified.empty())
+			collection.modified.clear();
 		return;
 	}
 
 	if (roles.empty())
 		return;
 
-	if (profiles.empty())
+	if (collection.original.empty() || collection.modified.empty())
 		return;
 
 	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
 	{
-		if (RE::TESForm::LookupByID<RE::Actor>(i->first)->IsDead())
+		auto actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
+		if (actor->IsDead() ||
+			IsEssentialAndOrProtected(actor))
 		{
-			CombatStyleManager::ReturnCachedSingle(profiles, i->first);
-			roles.erase(i);
+			CombatStyleManager::ReturnCachedSingle(collection.original, i->first);
+			if (collection.modified.contains(i->first))
+				collection.modified.erase(i->first);
+			if (roles.contains(i->first))
+				roles.erase(i->first);
 		}
 	}
 }

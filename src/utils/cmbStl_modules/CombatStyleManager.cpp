@@ -97,9 +97,12 @@ void CombatStyleManager::AssignAndCache
 
 	for (std::unordered_map<RE::FormID, char>::iterator i = roleList.begin(); i != roleList.end(); i++)
 	{
-		auto actorBase = RE::TESForm::LookupByID<RE::Actor>(i->first)->GetActorBase();
-
+		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
+		if (!npc || npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded()) continue;
+		auto actorBase = npc->GetActorBase();
+		if (!actorBase) continue;
 		auto cmbStyle = actorBase->GetCombatStyle();
+		if (!cmbStyle) continue;
 
 		//Caching original styles (will not overwrite existing original style 
 		// on the second cycle onwards
@@ -113,28 +116,53 @@ void CombatStyleManager::AssignAndCache
 		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
 	}
 
-	//collection.original = original;
-	//collection.modified = modified;
-	//return collection;
+	/*if (collection.original.size() > currentRoles.size() &&
+		collection.modified.size() > currentRoles.size())
+	{
+		for (auto j = collection.original.begin(); j != collection.original.end(); j++)
+		{
+			if (currentRoles.find(j->first) == currentRoles.end())
+			{
+				collection.original.erase(j);
+				collection.modified.erase(j);
+			}
+		}
+	}*/
 }
 
-void CombatStyleManager::ReturnCached(std::unordered_map<RE::FormID, combatStyleProf::mults> cache)
+void CombatStyleManager::ReturnCached(
+	std::unordered_map<RE::FormID, char>& currentRoles,
+	profileCollection& collection
+)
 {
-	if (cache.empty()) return;
+	if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
 
-	for (std::unordered_map<RE::FormID, combatStyleProf::mults>::iterator
-		i = cache.begin(); i != cache.end(); i++)
+	for (std::unordered_map<RE::FormID, char>::iterator
+		i = currentRoles.begin(); i != currentRoles.end(); i++)
 	{
-		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first)->GetActorBase();
+		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
+		if (!npc) continue;
+		if (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded()) continue;
+		auto npcBase = npc->GetActorBase();
+		if (!npcBase)
+		{
+			CONSOLE_LOG("[Puppeteer] actor base is invalid");
+			continue;
+		}
+		auto style = CloneCombatStyle(npcBase->GetCombatStyle());
 
-		if (!npc) return;
+		if (!style)
+		{
+			CONSOLE_LOG("[Puppeteer] style is invalid, not returning back to owner");
+			continue;
+		}
+		style = combatStyleProf::setProfileToStyle(collection.original.find(i->first)->second, style);
 
-		auto style = CloneCombatStyle(npc->GetCombatStyle());
+		npcBase->SetCombatStyle(style);
 
-		if (!style) return;
-		style = combatStyleProf::setProfileToStyle(i->second, style);
-
-		npc->SetCombatStyle(style);
+		collection.modified.erase(i->first);
+		collection.original.erase(i->first);
+		currentRoles.erase(i);
 	}
 }
 
