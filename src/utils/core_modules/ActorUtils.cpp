@@ -100,11 +100,13 @@ void ActorUtils::DeadActorsCleanup(
 	if (collection.original.empty() || collection.modified.empty())
 		return;
 
-	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
+	for (auto i = roles.begin(); i != roles.end(); i++)
 	{
 		auto actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
-		if (actor->IsDead() ||
+		if (actor &&
+			(actor->IsDead() ||
 			IsEssentialAndOrProtected(actor))
+		)
 		{
 			CombatStyleManager::ReturnCachedSingle(collection.original, i->first);
 			if (collection.modified.contains(i->first))
