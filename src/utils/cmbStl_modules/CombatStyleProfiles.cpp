@@ -25,7 +25,9 @@ mults combatStyleProf::initializeGen(RE::TESCombatStyle* original)
 	return profile;
 }
 
-RE::TESCombatStyle* combatStyleProf::setProfileToStyle(mults profile, RE::TESCombatStyle* style)
+//RE::TESCombatStyle* 
+void
+combatStyleProf::setProfileToStyle(mults profile, RE::TESCombatStyle*& style)
 {
 	//RE::TESCombatStyle* style;
 
@@ -46,7 +48,7 @@ RE::TESCombatStyle* combatStyleProf::setProfileToStyle(mults profile, RE::TESCom
 	style->meleeData.powerAttackBlockingMult = profile.patkBlocking;
 	style->meleeData.powerAttackIncapacitatedMult = profile.patkStaggered;
 
-	return style;
+	//return style;
 }
 
 void combatStyleProf::setJSONToProfile(nlohmann::json cfg, mults& profile)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PCH.h"
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
 #include "utils/core_modules/EnemyScanner.h"
@@ -31,8 +32,8 @@ static int secondsPerCycle = 0;
 static int minimumActors = 0;
 //static int cycleCount = 0;
 static bool shutoffPuppeteer = false;
-static RE::Actor* leader;
-static RE::Actor* leaderCache;
+static RE::FormID leaderForm;
+static RE::FormID leaderFormCache;
 static int countSinceLeaderDeath = 0;
 static int maxSkipCycles = 0;
 //necessary for the loop not constantly running the functions when combat ends
@@ -42,4 +43,27 @@ static bool wasInCombat = false;
 namespace AIManager
 {
 	void Initialize();
+
+	//void Update(RE::PlayerCharacter, float secondsSinceUpdate);
 }
+
+//class MainLoop
+//{
+//public:
+//	struct Hook
+//	{
+//		struct PlayerCharacter_Update {
+//			static void thunk(RE::PlayerCharacter* player, float delta) {
+//				func(player, delta);
+//				AIManager::Initialize();
+//			}
+//
+//			static inline REL::Relocation<decltype(thunk)> func;
+//		};
+//
+//		static void Install()
+//		{
+//			stl::write_vfunc<RE::PlayerCharacter, 0xAD, PlayerCharacter_Update>();
+//		}
+//	};
+//};
