@@ -71,31 +71,27 @@ combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile,
 	profileFilterFromJSON(configData, type, profile);
 
 	//cloning new style from 
-	auto customStyle = CloneCombatStyle(npc->GetCombatStyle());
+	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());
 
 	//converting profile to style
-	combatStyleProf::setProfileToStyle(profile, customStyle);
+	combatStyleProf::setProfileToStyle(profile, tmpStyle);
 
 	//setting new style
-	npc->SetCombatStyle(customStyle);
+	npc->SetCombatStyle(tmpStyle);
 
 	return profile;
 }
 
 void CombatStyleManager::AssignAndCache
 (
-	std::unordered_map<RE::FormID, char> roleList,
+	const std::unordered_map<RE::FormID, char>& roleList,
 	profileCollection &collection
 )
 {
-	/*profileCollection collection;
-	std::unordered_map<RE::FormID, combatStyleProf::mults> original;
-	std::unordered_map<RE::FormID, combatStyleProf::mults> modified;*/
-
 	if (roleList.size() < ConfigLoader::GetMinimumActors())
 		return;
 
-	for (std::unordered_map<RE::FormID, char>::iterator i = roleList.begin(); i != roleList.end(); i++)
+	for (auto i = roleList.begin(); i != roleList.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (!npc || npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded()) continue;
@@ -106,8 +102,6 @@ void CombatStyleManager::AssignAndCache
 
 		//Caching original styles (will not overwrite existing original style 
 		// on the second cycle onwards
-
-		//if(!original.empty() && original.contains(i->first))
 		if (!collection.original.contains(i->first))
 			collection.original[i->first] = combatStyleProf::initializeGen(cmbStyle);
 
@@ -131,14 +125,13 @@ void CombatStyleManager::AssignAndCache
 }
 
 void CombatStyleManager::ReturnCached(
-	std::unordered_map<RE::FormID, char>& currentRoles,
+	const std::unordered_map<RE::FormID, char>& currentRoles,
 	profileCollection& collection
 )
 {
 	if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
 
-	for (std::unordered_map<RE::FormID, char>::iterator
-		i = currentRoles.begin(); i != currentRoles.end(); i++)
+	for (auto i = currentRoles.begin(); i != currentRoles.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (!npc) continue;
@@ -149,34 +142,35 @@ void CombatStyleManager::ReturnCached(
 			CONSOLE_LOG("[Puppeteer] actor base is invalid");
 			continue;
 		}
-		auto style = CloneCombatStyle(npcBase->GetCombatStyle());
+		tmpStyle = CloneCombatStyle(npcBase->GetCombatStyle());
 
-		if (!style)
+		if (!tmpStyle)
 		{
 			CONSOLE_LOG("[Puppeteer] style is invalid, not returning back to owner");
 			continue;
 		}
-		style = combatStyleProf::setProfileToStyle(collection.original.find(i->first)->second, style);
+		combatStyleProf::setProfileToStyle(collection.original.find(i->first)->second, tmpStyle);
 
-		npcBase->SetCombatStyle(style);
+		npcBase->SetCombatStyle(tmpStyle);
 
 		collection.modified.erase(i->first);
 		collection.original.erase(i->first);
-		currentRoles.erase(i);
 	}
 }
 
-void CombatStyleManager::ReturnCachedSingle(std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, RE::FormID deadForm)
+void CombatStyleManager::ReturnCachedSingle(
+	std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, 
+	const RE::FormID deadForm)
 {
 	auto deadTarget = cachedList.find(deadForm);
 	if (deadTarget == cachedList.end())
 		return;
 
 	auto npc = RE::TESForm::LookupByID<RE::Actor>(deadForm)->GetActorBase();
-	auto ogStyle = CloneCombatStyle(npc->GetCombatStyle());
-	ogStyle = combatStyleProf::setProfileToStyle(deadTarget->second, ogStyle);
+	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());
+	combatStyleProf::setProfileToStyle(deadTarget->second, tmpStyle);
 
-	npc->SetCombatStyle(ogStyle);
+	npc->SetCombatStyle(tmpStyle);
 
 	cachedList.erase(deadTarget);
 }

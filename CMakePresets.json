@@ -36,10 +36,11 @@
             "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
         },
         {
-            "name": "release",
-            "inherits": [ "windows-base" ],
-            "displayName": "Release",
-            "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
-        }
+            "name": "x64 Debug Windows Static MD",
+            "inherits": [ "x64-static-md" ],
+            "displayName": "x64 Debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+            }
     ]
 }

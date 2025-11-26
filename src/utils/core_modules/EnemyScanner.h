@@ -10,5 +10,6 @@
 namespace EnemyScanner
 {
     // Returns the reference IDs (FormIDs) of hostile NPCs near the player
-    std::vector<RE::FormID> GetHostileNPCsNearPlayer(float radius = 1500.0f);
+    //std::vector<RE::FormID> 
+    void    GetHostileNPCsNearPlayer(float radius, std::vector<RE::FormID>& enemies);
 }

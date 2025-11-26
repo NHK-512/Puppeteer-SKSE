@@ -30,7 +30,9 @@ namespace combatStyleProf
 	//Initializes and save a copy of each value into a profile
 	mults initializeGen(RE::TESCombatStyle* original);
 	//Converts the profile back to Combat Style
-	RE::TESCombatStyle* setProfileToStyle(mults profile, RE::TESCombatStyle* style);
+	//RE::TESCombatStyle* 
+	void
+	setProfileToStyle(mults profile, RE::TESCombatStyle*& style);
 
 	//Converts the config JSON to a Profile depending on the role mentioned
 	void setJSONToProfile(nlohmann::json config, mults& profile);

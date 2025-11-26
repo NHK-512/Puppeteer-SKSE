@@ -1,12 +1,13 @@
 #include "EnemyScanner.h"
 
-std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
+//std::vector<RE::FormID> 
+void EnemyScanner::GetHostileNPCsNearPlayer(float radius, std::vector<RE::FormID>& enemies)
 {
-    std::vector<RE::FormID> hostileIDs;
+    //std::vector<RE::FormID> hostileIDs;
 
     auto* player = RE::PlayerCharacter::GetSingleton();
     if (!player)
-        return hostileIDs;
+        return;// hostileIDs;
 
     const auto playerPos = player->GetPosition();
 
@@ -28,11 +29,14 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
         if (actor->AsActorState()->IsBleedingOut())
             continue;
 
+        if (actor->IsInKillMove())
+            continue;
+
         const auto dist = playerPos.GetDistance(actor->GetPosition());
         if (dist <= radius) {
-            hostileIDs.push_back(actor->GetFormID());
+            enemies.push_back(actor->GetFormID());
         }
     }
 
-    return hostileIDs;
+    //return hostileIDs;
 }

@@ -1,25 +1,7 @@
 #include "ActorUtils.h"
 
 
-bool ActorUtils::dmgTaken(RE::PlayerCharacter* player, RE::Actor* npc)
-{
-	if (!player)
-		player = RE::PlayerCharacter::GetSingleton();
-
-	if (npc->IsDead())
-		return 0;
-
-	if (npc->HasBeenAttacked())
-	{
-		CONSOLE_LOG("NPC {} has been attacked", npc->GetFormID());
-		return 1;
-	}
-		
-
-	return 0;
-}
-
-RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, std::vector<RE::Actor*> otherActors)
+RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, const std::vector<RE::Actor*>& otherActors)
 {
 	auto fromPos = targetActor->GetPosition();
 	RE::NiPoint3 toPos;
@@ -42,7 +24,9 @@ RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, std::vecto
 	return closestActor;
 }
 
-std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(std::unordered_map<RE::FormID, char> roles, char roleType)
+std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(
+	const std::unordered_map<RE::FormID, char>& roles, 
+	char roleType)
 {
 	std::vector<RE::Actor*> outVct;
 	RE::Actor* actor;
@@ -50,19 +34,21 @@ std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(std::unordered_map<RE
 	if (roles.size() <= 1)
 		return outVct;
 
-	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
+	for (auto i = roles.begin(); i != roles.end(); i++)
 	{
 		if (i->second == roleType)
 		{
 			actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
-			outVct.push_back(actor);
+			if (actor &&
+				actor->Is3DLoaded())
+				outVct.push_back(actor);
 		}
 	}
 
 	return outVct;
 }
 
-bool IsEssentialAndOrProtected(RE::Actor* actor)
+bool IsValidForDelete(RE::Actor* actor)
 {
 	auto base = actor->GetActorBase();
 	auto state = actor->AsActorState();
@@ -105,7 +91,7 @@ void ActorUtils::DeadActorsCleanup(
 		auto actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (actor &&
 			(actor->IsDead() ||
-			IsEssentialAndOrProtected(actor))
+			IsValidForDelete(actor))
 		)
 		{
 			CombatStyleManager::ReturnCachedSingle(collection.original, i->first);
@@ -117,24 +103,41 @@ void ActorUtils::DeadActorsCleanup(
 	}
 }
 
-void ActorUtils::checkGroupCombatStyle(std::unordered_map<RE::FormID, char> roles)
-{
-	RE::Actor* actor;
-
-	if (roles.size() <= 1)
-		return;
-
-	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
-	{
-		actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
-		auto cmbStyle = actor->GetActorBase()->GetCombatStyle();
-
-		CONSOLE_LOG("Actor {} has style: {} , with ID {:X}", 
-					 actor->GetDisplayFullName(), cmbStyle->GetFormEditorID(), cmbStyle->GetFormID());
-	}
-}
-
-void ActorUtils::csGetModSet(RE::Actor* actor, int type, float newVal)
-{
-
-}
+//void ActorUtils::checkGroupCombatStyle(std::unordered_map<RE::FormID, char> roles)
+//{
+//	RE::Actor* actor;
+//
+//	if (roles.size() <= 1)
+//		return;
+//
+//	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
+//	{
+//		actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
+//		auto cmbStyle = actor->GetActorBase()->GetCombatStyle();
+//
+//		CONSOLE_LOG("Actor {} has style: {} , with ID {:X}", 
+//					 actor->GetDisplayFullName(), cmbStyle->GetFormEditorID(), cmbStyle->GetFormID());
+//	}
+//}
+//
+//void ActorUtils::csGetModSet(RE::Actor* actor, int type, float newVal)
+//{
+//
+//}
+//bool ActorUtils::dmgTaken(RE::PlayerCharacter* player, RE::Actor* npc)
+//{
+//	if (!player)
+//		player = RE::PlayerCharacter::GetSingleton();
+//
+//	if (npc->IsDead())
+//		return 0;
+//
+//	if (npc->HasBeenAttacked())
+//	{
+//		CONSOLE_LOG("NPC {} has been attacked", npc->GetFormID());
+//		return 1;
+//	}
+//		
+//
+//	return 0;
+//}
