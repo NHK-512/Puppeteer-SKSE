@@ -22,7 +22,7 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs, std::unordere
         if (form) {
             auto actor = form->As<RE::Actor>();
             //if (auto* actor = form->As<RE::Actor>() && actor-) 
-            if(actor && actor->Is3DLoaded() && !actor->IsDead())
+            if(actor && (actor->Is3DLoaded() && !actor->IsDead()))
             {
                 hostiles.push_back(actor);
             }
@@ -85,6 +85,8 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs, std::unordere
             leader = actor;
         }
     } //thanks for the suggested code, DavidJCobb
+    if (!leader)
+        leader = *hostiles.begin();
     assignedNPCs[leader->GetFormID()] = 'L';
 
     // --- Assign Ranger ---
@@ -166,21 +168,6 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs, std::unordere
     //return roleList;
 }
 
-#pragma region Ranger Utilities
-void Puppeteer::rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player)
-{
-    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
-
-    for (int iR = 0; iR < rangers.size(); iR++)
-    {
-        Ranger::KeepDistanceAwayPlayer(
-            rangers[iR],
-            ActorUtils::extractActorsFromRoles(roles, 'V'),
-            player
-        );
-    }
-}
-
 bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
 {
     int deathCount = 0;
@@ -199,6 +186,26 @@ bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
     if (deathCount == actors.size())
         return 1;
     return 0;
+}
+
+#pragma region Ranger Utilities
+void Puppeteer::rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player)
+{
+    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
+    if (rangers.empty() ||
+        ifRoleIsDead(rangers))
+    {
+        return;
+    }
+
+    for (int iR = 0; iR < rangers.size(); iR++)
+    {
+        Ranger::KeepDistanceAwayPlayer(
+            rangers[iR],
+            ActorUtils::extractActorsFromRoles(roles, 'V'),
+            player
+        );
+    }
 }
 
 struct BowEntry {
@@ -302,15 +309,30 @@ RE::TESAmmo* getArrowRefFromRangerCorpse_2(RE::Actor* aliveActor, std::vector<RE
 
 void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 {
-    if (!ifRoleIsDead(ActorUtils::extractActorsFromRoles(roles, 'R')))
+    auto vangList = ActorUtils::extractActorsFromRoles(roles, 'V');
+    auto rangList = ActorUtils::extractActorsFromRoles(roles, 'R');
+
+    //checking if all Rangers are dead or not
+    if (!ifRoleIsDead(rangList))
     {
         return;
     }
     consoleUtils::Log("[Puppeteer] All Rangers are dead. Attempting replace with Vanguard");
+
+    //checking if any Vanguards are alive
+    if (vangList.empty() ||
+        ifRoleIsDead(vangList)
+    )
+    {
+        if(consoleUtils::TriggerOnce("NO_VANGS", (vangList.empty() || ifRoleIsDead(vangList))))
+            consoleUtils::Log("[Puppeteer] No Vanguards available. Skipping replacement!");
+        return;
+    }
+
 #pragma region declarations
-    RE::Actor* vang = ActorUtils::extractActorsFromRoles(roles, 'V').front();
+    auto vang = vangList.front();
     auto equipManager = RE::ActorEquipManager::GetSingleton();
-    auto* bowWeap = getBowFromRangerBody(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+    auto* bowWeap = getBowFromRangerBody(vang, rangList);
     auto* bowRef = getClosestBowToActor(vang);
 #pragma endregion
     //CONSOLE_LOG("Declaration complete.");
@@ -356,11 +378,11 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 
 #pragma region Arrow equip
 
-    auto* arrowRef = getArrowRefFromRangerCorpse(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+    auto* arrowRef = getArrowRefFromRangerCorpse(vang, rangList);
 
     if (!arrowRef)
     {
-        arrowRef = getArrowRefFromRangerCorpse_2(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+        arrowRef = getArrowRefFromRangerCorpse_2(vang, rangList);
         if (!arrowRef)
             arrowRef = RE::TESForm::LookupByID<RE::TESAmmo>(0x1397D);
     }

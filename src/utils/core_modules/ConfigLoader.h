@@ -14,8 +14,11 @@ namespace ConfigLoader
 {
 	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
 
+	//whether or not the config file is changed and saved
+	bool IfConfigChanged();
+
 	//Gets general data from config JSON in JSON format
-	json LoadConfigIfChanged();
+	json LoadConfig();
 
 	int GetSecondsPerCycle();
 
@@ -26,4 +29,6 @@ namespace ConfigLoader
 	int GetSkipCyclesPerCycle();
 
 	bool GetEnabledLogs();
+
+	json GetStyleMults();
 }

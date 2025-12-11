@@ -116,7 +116,7 @@ static void RoleControl()
     //Don't update combat styles for X amount of cycles if leader is dead 
     if (countSinceLeaderDeath > maxSkipCycles)
     {
-        CombatStyleManager::AssignAndCache(currentRoles, profCollection);
+        CombatStyleManager::AssignAndCache(currentRoles, profCollection, rolesMult);
         //CONSOLE_LOG("[Puppeteer] Combat Styles modified!");
     }
     else
@@ -136,7 +136,7 @@ void LoadSettings()
 {
     using namespace ConfigLoader;
 
-    if (minimumActors   != GetMinimumActors() ||
+    /*if (minimumActors   != GetMinimumActors() ||
         secondsPerCycle != GetSecondsPerCycle() ||
         maxSkipCycles   != GetSkipCyclesPerCycle()||
         scanDistance    != GetScanDistance())
@@ -150,7 +150,22 @@ void LoadSettings()
             , secondsPerCycle
             , scanDistance
             , minimumActors);
+    }*/
+
+    if (!IfConfigChanged()) {
+        return;
     }
+
+    LoadConfig(); //needed for changes after first time loading
+
+    minimumActors = GetMinimumActors();
+    secondsPerCycle = GetSecondsPerCycle();
+    maxSkipCycles = GetSkipCyclesPerCycle();
+    scanDistance = GetScanDistance();
+    rolesMult = GetStyleMults();
+
+    CONSOLE_LOG("[Puppeteer] Cycle Duration: {} | Scan Distance: {} | Minimum Actors: {}",
+        secondsPerCycle, scanDistance, minimumActors);
 }
 
 void AIManager::Initialize()
@@ -173,7 +188,9 @@ void AIManager::Initialize()
             std::this_thread::sleep_for(std::chrono::seconds(1));
 
             auto* player = RE::PlayerCharacter::GetSingleton();
-            if (!player || !player->Is3DLoaded())
+            if (!player)
+                continue;
+            if (player && !player->Is3DLoaded())
                 continue;
 
             auto console = RE::UI::GetSingleton();

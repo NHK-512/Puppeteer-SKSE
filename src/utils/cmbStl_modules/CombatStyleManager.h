@@ -12,6 +12,8 @@
 #include "CombatStyleProfiles.h"
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
+static json configData = json::object();
+
 namespace CombatStyleManager 
 {
 	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
@@ -27,7 +29,8 @@ namespace CombatStyleManager
 	//Asssign custom Combat Styles from list and cache original style into output
 	void AssignAndCache(
 		const std::unordered_map<RE::FormID, char>& roleList, 
-		profileCollection& collection);
+		profileCollection& collection,
+		const json& jsonStyleSettings);
 	//Accepts a cached list of combatants and revert their styles to original
 	void ReturnCached(
 		const std::unordered_map<RE::FormID, char>& currentRoles,

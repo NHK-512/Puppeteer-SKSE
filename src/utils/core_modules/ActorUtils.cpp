@@ -50,13 +50,16 @@ std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(
 
 bool IsValidForDelete(RE::Actor* actor)
 {
-	auto base = actor->GetActorBase();
-	auto state = actor->AsActorState();
-	if (base) {
-		if (base->IsEssential() ||	// Only allies can kill them
-			base->IsProtected())	// Only player cannot kill them, but enemies can
-		{
-			return (state && state->IsBleedingOut()) || actor->IsInKillMove();
+	if (actor)
+	{
+		auto base = actor->GetActorBase();
+		auto state = actor->AsActorState();
+		if (base) {
+			if (base->IsEssential() ||	// Only allies can kill them
+				base->IsProtected())	// Only player cannot kill them, but enemies can
+			{
+				return (state && state->IsBleedingOut()) || actor->IsInKillMove();
+			}
 		}
 	}
 
@@ -90,8 +93,7 @@ void ActorUtils::DeadActorsCleanup(
 	{
 		auto actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (actor &&
-			(actor->IsDead() ||
-			IsValidForDelete(actor))
+			(actor->IsDead() ||IsValidForDelete(actor))
 		)
 		{
 			CombatStyleManager::ReturnCachedSingle(collection.original, i->first);
