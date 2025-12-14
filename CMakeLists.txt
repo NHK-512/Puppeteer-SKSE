@@ -32,6 +32,7 @@ set(sources
     src/utils/roles/Ranger.cpp
     src/utils/roles/Vanguard.cpp
     src/utils/roles/Striker.cpp
+    src/utils/roles/Caster.cpp
     src/utils/cmbStl_modules/CombatStyleManager.cpp
     src/utils/cmbStl_modules/CombatStyleProfiles.cpp
 )
@@ -45,6 +46,7 @@ set(headers
     src/utils/roles/Leader.h
     src/utils/roles/Ranger.h
     src/utils/roles/Vanguard.h
+    src/utils/roles/Caster.h
     src/utils/cmbStl_modules/CombatStyleManager.h
     src/utils/cmbStl_modules/CombatStyleProfiles.h
 )

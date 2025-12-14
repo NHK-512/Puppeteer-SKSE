@@ -20,22 +20,6 @@ RE::TESCombatStyle* CloneCombatStyle(RE::TESCombatStyle* original)
 	return clonedCmbStl;
 }
 
-void profileFilter(char type, combatStyleProf::mults& profile)
-{
-	switch (type)
-	{
-	case 'L':
-		Leader::GetCombatProfile(profile);
-		break;
-	case 'R':
-		Ranger::GetCombatProfile(profile);
-		break;
-	default:
-		Vanguard::GetCombatProfile(profile);
-		break;
-	}
-}
-
 void profileFilterFromJSON(/*json cfg,*/ char type, combatStyleProf::mults& profile)
 {
 	switch (type)
@@ -59,6 +43,10 @@ void profileFilterFromJSON(/*json cfg,*/ char type, combatStyleProf::mults& prof
 	case 'R':
 		if (configData.contains("Ranger"))
 			combatStyleProf::setJSONToProfile(configData["Ranger"], profile);
+		break;
+	case 'C':
+		if (configData.contains("Caster"))
+			combatStyleProf::setJSONToProfile(configData["Caster"], profile);
 		break;
 	default:
 		if (configData.contains("Vanguard"))
@@ -125,19 +113,6 @@ void CombatStyleManager::AssignAndCache
 		// Will overwrite existing key's values no matter what
 		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
 	}
-
-	/*if (collection.original.size() > currentRoles.size() &&
-		collection.modified.size() > currentRoles.size())
-	{
-		for (auto j = collection.original.begin(); j != collection.original.end(); j++)
-		{
-			if (currentRoles.find(j->first) == currentRoles.end())
-			{
-				collection.original.erase(j);
-				collection.modified.erase(j);
-			}
-		}
-	}*/
 }
 
 void CombatStyleManager::ReturnCached(

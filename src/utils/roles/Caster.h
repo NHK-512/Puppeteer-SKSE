@@ -4,10 +4,8 @@
 #include "../cmbStl_modules/CombatStyleProfiles.h"
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
-namespace Leader
+namespace Caster
 {
 	void WriteDefaultProfileToJSON(nlohmann::json& j);
-	void GetCombatProfile(combatStyleProf::mults& prof);
-	void Execute(RE::Actor* actor);
-    bool AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs, RE::Actor*& leader);
+	bool AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs);
 }

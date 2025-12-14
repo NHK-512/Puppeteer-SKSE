@@ -13,6 +13,7 @@ void IniDefaultJSON()
 
 	Ranger::WriteDefaultProfileToJSON(cachedJSON);
 	Leader::WriteDefaultProfileToJSON(cachedJSON);
+	Caster::WriteDefaultProfileToJSON(cachedJSON);
 	Vanguard::WriteDefaultProfileToJSON(cachedJSON);
 
 	if (!fs::exists(ConfigLoader::filePath))
@@ -110,3 +111,5 @@ json ConfigLoader::GetStyleMults() {
 
 	return cachedJSON["roles"];
 }
+bool ConfigLoader::GetRangTakeCoverFeature() { return GetValue<bool>("SideFeatures", "RangerTakeCover", true); }
+bool ConfigLoader::GetVangReplaceRang() { return GetValue<bool>("SideFeatures", "VanguardReplaceRanger", true); }

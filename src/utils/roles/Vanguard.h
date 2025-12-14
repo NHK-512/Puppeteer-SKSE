@@ -7,4 +7,5 @@ namespace Vanguard
 {
 	void WriteDefaultProfileToJSON(nlohmann::json& j);
 	void GetCombatProfile(combatStyleProf::mults& prof);
+	bool AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs);
 }

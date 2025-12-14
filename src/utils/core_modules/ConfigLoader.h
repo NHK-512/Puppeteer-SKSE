@@ -31,4 +31,8 @@ namespace ConfigLoader
 	bool GetEnabledLogs();
 
 	json GetStyleMults();
+
+	bool GetRangTakeCoverFeature();
+
+	bool GetVangReplaceRang();
 }

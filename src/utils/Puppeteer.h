@@ -4,9 +4,11 @@
 #include "roles/Ranger.h"
 #include "roles/Vanguard.h"
 #include "roles/Striker.h"
+#include "roles/Caster.h"
 #include "core_modules/EnemyScanner.h"
 #include "core_modules/ActorUtils.h"
 #include "core_modules/ConsoleUtils.h"
+#include "core_modules/ConfigLoader.h"
 
 #include <unordered_map>
 #include <vector>
