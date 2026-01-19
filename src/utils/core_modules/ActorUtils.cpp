@@ -24,6 +24,16 @@ RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, const std:
 	return closestActor;
 }
 
+void ActorUtils::flashMultiplier(
+	const std::unordered_map<RE::FormID, char>& roles,
+	json flashParams)
+	//int second,
+	//int duration)
+{
+	if (roles.empty())
+		return;
+}
+
 std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(
 	const std::unordered_map<RE::FormID, char>& roles, 
 	char roleType)
@@ -122,24 +132,15 @@ void ActorUtils::DeadActorsCleanup(
 //	}
 //}
 //
-//void ActorUtils::csGetModSet(RE::Actor* actor, int type, float newVal)
-//{
-//
-//}
-//bool ActorUtils::dmgTaken(RE::PlayerCharacter* player, RE::Actor* npc)
-//{
-//	if (!player)
-//		player = RE::PlayerCharacter::GetSingleton();
-//
-//	if (npc->IsDead())
-//		return 0;
-//
-//	if (npc->HasBeenAttacked())
-//	{
-//		CONSOLE_LOG("NPC {} has been attacked", npc->GetFormID());
-//		return 1;
-//	}
-//		
-//
-//	return 0;
-//}
+
+bool ActorUtils::dmgTaken(RE::Actor* npc)
+{
+	if (!npc)			return 0;
+	if (npc->IsDead())	return 0;
+
+	if (npc->HasBeenAttacked())
+		return 1;
+		
+	return 0;
+}
+

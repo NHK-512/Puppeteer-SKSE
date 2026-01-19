@@ -24,10 +24,9 @@ namespace ActorUtils {
     );
     //Gets a RE::Actor base on a target actor
     RE::Actor* getClosestActorToActor(RE::Actor* targetActor, const std::vector<RE::Actor*>& otherActors);
-    ////Checks an a group combatstyle via console and form ID
-    //void checkGroupCombatStyle(std::unordered_map<RE::FormID, char> roles);
-    ////Get the current Combat Style, modify according to the inputted number, Set the CS
-    //void csGetModSet(RE::Actor* actor, int type, float newVal);
-    ////A check whether the player has taken damage from a certain npc
-    //bool dmgTaken(RE::PlayerCharacter* player, RE::Actor* npc);
+    //Flashes a multiplier up a certain amount for a certain time
+    void flashMultiplier(const std::unordered_map<RE::FormID, char>& roles, json flashParams);
+        //, int second, int duration);
+
+    bool dmgTaken(RE::Actor* npc);
 }

@@ -20,7 +20,7 @@ RE::TESCombatStyle* CloneCombatStyle(RE::TESCombatStyle* original)
 	return clonedCmbStl;
 }
 
-void profileFilterFromJSON(/*json cfg,*/ char type, combatStyleProf::mults& profile)
+void profileFilterFromJSON(char type, combatStyleProf::mults& profile)
 {
 	switch (type)
 	{
@@ -55,11 +55,23 @@ void profileFilterFromJSON(/*json cfg,*/ char type, combatStyleProf::mults& prof
 	}
 }
 
+void CombatStyleManager::flashFallBackMult(RE::TESNPC* npc, char type, bool toggle)
+{
+	if (configData.empty())	return;	
+
+	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());
+	profileFilterFromJSON(type, tmpProfile);
+	if (toggle)
+		tmpProfile.fallback *= 3;
+	else
+		tmpProfile.fallback /= 3;
+	combatStyleProf::setProfileToStyle(tmpProfile, tmpStyle);
+	npc->SetCombatStyle(tmpStyle);
+}
+
 combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type)
 {
 	//Gets config data from JSON
-	//configData = ConfigLoader::LoadConfig();
-
 	//failsafe if JSON ends up empty, that combat style will remain unchanged
 	if (configData.empty())
 	{
@@ -68,7 +80,7 @@ combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile,
 	}
 
 	//changes the profile base configData and through a filter using type
-	profileFilterFromJSON(/*configData,*/ type, profile);
+	profileFilterFromJSON(type, profile);
 
 	//cloning new style from 
 	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());

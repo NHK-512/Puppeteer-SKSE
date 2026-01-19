@@ -18,6 +18,7 @@ namespace CombatStyleManager
 {
 	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
 	static RE::TESCombatStyle* tmpStyle;
+	static combatStyleProf::mults tmpProfile;
 	
 	struct profileCollection
 	{
@@ -25,6 +26,8 @@ namespace CombatStyleManager
 		std::unordered_map< RE::FormID, combatStyleProf::mults> modified;
 		//std::unordered_map< RE::FormID,combatStyleProf::mults> final; //for profile blending step
 	};
+
+	void flashFallBackMult(RE::TESNPC* npc, char type, bool toggle);
 
 	//Asssign custom Combat Styles from list and cache original style into output
 	void AssignAndCache(

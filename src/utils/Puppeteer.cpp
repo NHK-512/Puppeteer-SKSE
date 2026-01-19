@@ -57,82 +57,6 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs, std::unordere
     if (!leader)
         leader = *hostiles.begin();
     assignedNPCs[leader->GetFormID()] = 'L';
-
-    /* --- Assign Ranger ---
-    for (auto* actor : hostiles) {
-        if (actor == leader) continue;
-
-        const auto inv = actor->GetInventory();
-        for (const auto& [item, data] : inv) {
-            if (!item || !data.second) continue;
-            if (data.first <= 0) continue;
-
-            if (const auto weap = item->As<RE::TESObjectWEAP>()) {
-                if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow")) 
-                {
-                    assignedNPCs[actor->GetFormID()] = 'R';
-                    break;
-                }
-            }
-        }
-    }*/
-
-    /* --- Assign Vanguard ---
-    std::vector<RE::Actor*> assignedVang;
-    assignedVang.push_back(leader);
-    pick only actors inside hostiles with a shield 
-     and push inside assignedVang vector to exclude later
-    for (auto* actor : hostiles) {
-        if (actor == leader) continue;
-    
-        const auto inv = actor->GetInventory();
-    
-        for (const auto& [item, data] : inv) {
-            if (!item || !data.second) continue;
-            if (data.first <= 0) continue;
-    
-            if (const auto armor = item->As<RE::TESObjectARMO>()) {
-                if (armor->HasKeywordString("ArmorShield")) {
-                    //assignedVang.push_back(actor);
-                    assignedNPCs[actor->GetFormID()] = 'V';
-                    break;
-                }
-            }
-        }
-    }
-
-    if (std::count_if(assignedVang.begin(), 
-        assignedVang.end(), 
-        [&](auto* a) 
-        { return a != leader; }) == 0) 
-    {
-        for (auto* actor : hostiles) {
-            if (actor == leader) continue;
-
-            const auto inv = actor->GetInventory();
-            for (const auto& [item, data] : inv) {
-                if (!item || !data.second) continue;
-                if (data.first <= 0) continue;
-
-                if (const auto weap = item->As<RE::TESObjectWEAP>()) {
-                    if (weap->IsTwoHandedSword() || weap->IsTwoHandedAxe()) {
-                        assignedVang.push_back(actor);
-                        assignedNPCs[actor->GetFormID()] = 'V';
-                        break;
-                    }
-                }
-            }
-        }
-    }*/
-
-    /*// --- Assign Vanguard fallback ---
-    for (auto* actor : hostiles) {
-        if (std::find(assignedVang.begin(), assignedVang.end(), actor) == assignedVang.end() &&
-            skipAssignedRanger(assignedNPCs, actor))
-        {
-            assignedNPCs[actor->GetFormID()] = 'V';
-        }
-    }*/
 }
 
 bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
@@ -153,6 +77,32 @@ bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
     if (deathCount == actors.size())
         return 1;
     return 0;
+}
+
+void initSurvivalTimeMap(const std::unordered_map<RE::FormID, char>& roles)
+{
+    using namespace Puppeteer;
+    if (!survivalTimes.empty())
+        survivalTimes.clear();
+
+    for (const auto& i : roles) {
+        survivalTimes.push_back({ i.first, 0, 0 });
+    }
+}
+
+void handleHesitation(const std::unordered_map<RE::FormID, char>& roles, int second, int cycleDuration)
+{
+    int hesitationDuration = ConfigLoader::GetDeathHesitationDuration();
+    if (
+        (cycleDuration - second) <= hesitationDuration
+        && hesitationDuration >= 0
+        ) return; //exit if there's no time left in cycle
+
+    static bool isActive = false;
+
+    if (EnemyScanner::isOneEnemyInstantKilled(Puppeteer::survivalTimes))
+        CONSOLE_LOG("[Puppeteer] Group size after instant kill: {:d}", Puppeteer::survivalTimes.size());
+        //ActorUtils::flashMultiplier(roles, "fallback");
 }
 
 #pragma region Ranger Utilities
@@ -368,53 +318,34 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 
 #pragma endregion
 
-//void updateCombat(const std::unordered_map<RE::FormID, char>& roles)
-//{
-//    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
-//    if (rangers.empty() ||
-//        ifRoleIsDead(rangers))
-//    {
-//        return;
-//    }
-//
-//    for (int iR = 0; iR < rangers.size(); iR++)
-//    {
-//        rangers[iR]->UpdateCombat();
-//        //rangers[iR]->EvaluatePackage(1, 1);
-//    }
-//}
-
 void Puppeteer::Listen(std::unordered_map<RE::FormID, char> &roles, int cycleTime)
 {  
     std::jthread([cycleTime, &roles]() {
         using namespace std::chrono_literals;
+        bool runOnce = true;
 
-        for (int i = 0; i < (cycleTime-1); ++i) {
+        for (int secn = 0; secn < (cycleTime-1); ++secn) {
             std::this_thread::sleep_for(1000ms);
 
-            SKSE::GetTaskInterface()->AddUITask([cycleTime, &roles]()
+            SKSE::GetTaskInterface()->AddUITask([secn, cycleTime, &roles, runOnce]()
             {
                 auto* player = RE::PlayerCharacter::GetSingleton();
-                static auto wasTakingCover = false;
                 if(roles.size() > 1)
                 {
-                    /*if (ConfigLoader::GetRangTakeCoverFeature())
+                    if (runOnce)
                     {
-                        Puppeteer::rangerKeepDistance(roles, player);
-                        wasTakingCover = true;
+                        initSurvivalTimeMap(roles);
+                        if (ConfigLoader::GetRangTakeCoverFeature())
+                            Puppeteer::rangerKeepDistance(roles, player);
+                        //CONSOLE_LOG("[Puppeteer] Ranger role is taking cover!");
                     }
-                    else if (wasTakingCover)
-                    {
-                        updateCombat(roles);
-                        wasTakingCover = false;
-                    }*/
-                    if (ConfigLoader::GetRangTakeCoverFeature())
-                        Puppeteer::rangerKeepDistance(roles, player);
+                        //Puppeteer::rangerKeepDistance(roles, player);
                     if(ConfigLoader::GetVangReplaceRang())
                         RangerCheckAndReplace(roles);
+                    handleHesitation(roles, secn, cycleTime);
                 }
             });
-            
+            if(runOnce) runOnce = false;
         }
     }).detach();
 }

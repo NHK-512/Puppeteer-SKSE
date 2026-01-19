@@ -75,7 +75,6 @@ static void RoleControl()
     //Always scans in every cycle
     //Scanner gets list of humanoid hostiles near player
     //enemies List constant gets overwritten and updated
-    //enemies = 
     EnemyScanner::GetHostileNPCsNearPlayer(scanDistance, enemies);
 
     //Caching leader of previous cycle to keep track if they are dead or not
@@ -224,12 +223,12 @@ void AIManager::Initialize()
                         /*
                         CONSOLE_LOG("[Puppeteer] roles: {:d}, ogProfile: {:d}, modProfile: {:d}", currentRoles.size(), profCollection.original.size(), profCollection.modified.size());
                         CONSOLE_LOG("[Puppeteer] previous enemies: {:d}, enemies: {:d}, countSinceLeaderDead: {:d}", previousEnemies.size(), enemies.size(), countSinceLeaderDeath);
-                        
+                        */
                         CONSOLE_LOG("Cycle Duration: {0:d} | Scan Distance: {1:f} | Minimum Actors: {2:d} | Available actors: {3:d}"
                             , secondsPerCycle
                             , scanDistance
                             , minimumActors
-                            , enemies.size());*/
+                            , enemies.size());
                         auto leader = RE::TESForm::LookupByID<RE::Actor>(leaderForm);
                         if (!currentRoles.empty() ||            //list of enemies is not empty
                              enemies.size() > minimumActors  //Enemies is more than minimum

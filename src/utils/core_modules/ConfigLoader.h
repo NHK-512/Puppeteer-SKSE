@@ -35,4 +35,7 @@ namespace ConfigLoader
 	bool GetRangTakeCoverFeature();
 
 	bool GetVangReplaceRang();
+
+	int GetDeathHesitationDuration();
+	int GetInstantKillTime();
 }

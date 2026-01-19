@@ -18,10 +18,17 @@
 static bool vangSwitch = false;
 static RE::Actor* tempRanger;
 
-
 namespace Puppeteer 
 {
-	//std::unordered_map<RE::FormID, char> 
+	struct survivalTime
+	{
+		RE::FormID formID;
+		int seconds;
+		bool isAttacked;
+	};
+
+	static std::vector<survivalTime> survivalTimes;
+
 	void AssignRoles(
 		const std::vector<RE::FormID>& npcIDs, 
 		std::unordered_map<RE::FormID, char>& assignedNPCs);

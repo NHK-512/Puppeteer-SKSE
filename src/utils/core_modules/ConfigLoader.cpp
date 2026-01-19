@@ -10,6 +10,8 @@ void IniDefaultJSON()
 	cachedJSON["General"]["MinimumActors"] = 3;
 	cachedJSON["SideFeatures"]["RangerTakeCover"] = true;
 	cachedJSON["SideFeatures"]["VaguardReplaceRanger"] = true;
+	cachedJSON["SideFeatures"]["Hesitation"]["Duration"] = 5;
+	cachedJSON["SideFeatures"]["Hesitation"]["InstantKillTime"] = 3;
 
 	Ranger::WriteDefaultProfileToJSON(cachedJSON);
 	Leader::WriteDefaultProfileToJSON(cachedJSON);
@@ -113,3 +115,49 @@ json ConfigLoader::GetStyleMults() {
 }
 bool ConfigLoader::GetRangTakeCoverFeature() { return GetValue<bool>("SideFeatures", "RangerTakeCover", true); }
 bool ConfigLoader::GetVangReplaceRang() { return GetValue<bool>("SideFeatures", "VanguardReplaceRanger", true); }
+int ConfigLoader::GetDeathHesitationDuration() 
+{ 
+	if (cachedJSON.empty())
+		cachedJSON = ConfigLoader::LoadConfig();
+
+	if (!cachedJSON.contains("SideFeatures"))
+		return 5; //5 seconds
+
+	if (!cachedJSON["SideFeatures"].contains("Hesitation"))
+		return 5;
+
+	if (!cachedJSON["SideFeatures"]["Hesitation"].contains("ReactionDuration"))
+		return 5;
+
+	if (cachedJSON["SideFeatures"]["Hesitation"]["ReactionDuration"].is_null())
+	{
+		consoleUtils::Log("[Puppeteer] Invalid setting '{}:{}:{}' — using default {}",
+			"SideFeatures", "Hesitation", "ReactionDuration", 5);
+		return 5;
+	}
+
+	return cachedJSON["SideFeatures"]["Hesitation"].value("ReactionDuration", 5);
+}
+int ConfigLoader::GetInstantKillTime()
+{
+	if (cachedJSON.empty())
+		cachedJSON = ConfigLoader::LoadConfig();
+
+	if (!cachedJSON.contains("SideFeatures"))
+		return 5; //5 seconds
+
+	if (!cachedJSON["SideFeatures"].contains("Hesitation"))
+		return 5;
+
+	if (!cachedJSON["SideFeatures"]["Hesitation"].contains("InstantKillTime"))
+		return 5;
+
+	if (cachedJSON["SideFeatures"]["Hesitation"]["InstantKillTime"].is_null())
+	{
+		consoleUtils::Log("[Puppeteer] Invalid setting '{}:{}:{}' — using default {}",
+			"SideFeatures", "Hesitation", "InstantKillTime", 3);
+		return 5;
+	}
+
+	return cachedJSON["SideFeatures"]["Hesitation"].value("InstantKillTime", 3);
+}
