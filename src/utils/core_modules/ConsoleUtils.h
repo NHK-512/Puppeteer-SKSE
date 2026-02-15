@@ -1,7 +1,7 @@
 #pragma once
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
-#include "ConfigLoader.h"
+#include "FileLoaders/ConfigLoader.h"
 #include <unordered_map>
 
 //#define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)

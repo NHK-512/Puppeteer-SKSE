@@ -10,6 +10,15 @@ using namespace nlohmann;
 static std::filesystem::file_time_type lastModifiedTime = std::filesystem::file_time_type::min();
 static json cachedJSON = json::object();
 
+struct PuppeteerConfig
+{
+	float scanDistance;
+	int secondsPerCycle;
+	int minimumActors;
+	int maxSkipCycles;
+	json* rolesMult;
+};
+
 namespace ConfigLoader
 {
 	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";

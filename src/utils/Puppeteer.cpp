@@ -90,20 +90,20 @@ void initSurvivalTimeMap(const std::unordered_map<RE::FormID, char>& roles)
     }
 }
 
-void handleHesitation(const std::unordered_map<RE::FormID, char>& roles, int second, int cycleDuration)
-{
-    int hesitationDuration = ConfigLoader::GetDeathHesitationDuration();
-    if (
-        (cycleDuration - second) <= hesitationDuration
-        && hesitationDuration >= 0
-        ) return; //exit if there's no time left in cycle
-
-    static bool isActive = false;
-
-    if (EnemyScanner::isOneEnemyInstantKilled(Puppeteer::survivalTimes))
-        CONSOLE_LOG("[Puppeteer] Group size after instant kill: {:d}", Puppeteer::survivalTimes.size());
-        //ActorUtils::flashMultiplier(roles, "fallback");
-}
+//void handleHesitation(const std::unordered_map<RE::FormID, char>& roles, int second, int cycleDuration)
+//{
+//    int hesitationDuration = ConfigLoader::GetDeathHesitationDuration();
+//    if (
+//        (cycleDuration - second) <= hesitationDuration
+//        && hesitationDuration >= 0
+//        ) return; //exit if there's no time left in cycle
+//
+//    //static bool isActive = false;
+//
+//    if (EnemyScanner::isOneEnemyInstantKilled(Puppeteer::survivalTimes))
+//        CONSOLE_LOG("[Puppeteer] Group size after instant kill: {:d}", Puppeteer::survivalTimes.size());
+//        //ActorUtils::flashMultiplier(roles, "fallback");
+//}
 
 #pragma region Ranger Utilities
 void Puppeteer::rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player)
@@ -318,34 +318,20 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 
 #pragma endregion
 
-void Puppeteer::Listen(std::unordered_map<RE::FormID, char> &roles, int cycleTime)
-{  
-    std::jthread([cycleTime, &roles]() {
-        using namespace std::chrono_literals;
-        bool runOnce = true;
-
-        for (int secn = 0; secn < (cycleTime-1); ++secn) {
-            std::this_thread::sleep_for(1000ms);
-
-            SKSE::GetTaskInterface()->AddUITask([secn, cycleTime, &roles, runOnce]()
-            {
-                auto* player = RE::PlayerCharacter::GetSingleton();
-                if(roles.size() > 1)
-                {
-                    if (runOnce)
-                    {
-                        initSurvivalTimeMap(roles);
-                        if (ConfigLoader::GetRangTakeCoverFeature())
-                            Puppeteer::rangerKeepDistance(roles, player);
-                        //CONSOLE_LOG("[Puppeteer] Ranger role is taking cover!");
-                    }
-                        //Puppeteer::rangerKeepDistance(roles, player);
-                    if(ConfigLoader::GetVangReplaceRang())
-                        RangerCheckAndReplace(roles);
-                    handleHesitation(roles, secn, cycleTime);
-                }
-            });
-            if(runOnce) runOnce = false;
-        }
-    }).detach();
+void Puppeteer::executeTactics(
+    std::unordered_map<RE::FormID, char>& roles, 
+    RE::PlayerCharacter* a_player
+)
+{
+    initSurvivalTimeMap(roles);
+    if (ConfigLoader::GetRangTakeCoverFeature())
+    {
+        Puppeteer::rangerKeepDistance(roles, a_player);
+        //CONSOLE_LOG("[Puppeteer] Ranger role is taking cover!");
+    }
+    if (ConfigLoader::GetVangReplaceRang())
+    {
+        RangerCheckAndReplace(roles);
+        //CONSOLE_LOG("[Puppeteer] Attempting Ranger replacement from Vanguard!");
+    }
 }

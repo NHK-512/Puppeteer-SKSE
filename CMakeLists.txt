@@ -23,11 +23,15 @@ set(sources
     src/main.cpp
     src/AIManager.cpp
     src/utils/Puppeteer.cpp
+    src/utils/CombatSession.cpp
+    src/utils/DamageTracker/DmgFlags.cpp
+    src/utils/DamageTracker/DmgTracker.cpp
     src/utils/core_modules/EnemyScanner.cpp
     src/utils/core_modules/NearbyAggroedActors.cpp
     src/utils/core_modules/ActorUtils.cpp
-    src/utils/core_modules/ConfigLoader.cpp
     src/utils/core_modules/ConsoleUtils.cpp
+    src/utils/core_modules/FileLoaders/ConfigLoader.cpp
+    #src/utils/core_modules/FileLoaders/BattleRecord.cpp
     src/utils/roles/Leader.cpp
     src/utils/roles/Ranger.cpp
     src/utils/roles/Vanguard.cpp
@@ -38,11 +42,14 @@ set(sources
 )
 set(headers
     src/PCH.h
+    src/utils/DamageTracker/DmgFlags.h
+    src/utils/DamageTracker/DmgTracker.h
     src/utils/core_modules/EnemyScanner.h
     src/utils/core_modules/NearbyAggroedActors.h
     src/utils/core_modules/ActorUtils.h
-    src/utils/core_modules/ConfigLoader.h
     src/utils/core_modules/ConsoleUtils
+    src/utils/core_modules/FileLoaders/ConfigLoader.h
+    #src/utils/core_modules/FileLoaders/BattleRecord.h
     src/utils/roles/Leader.h
     src/utils/roles/Ranger.h
     src/utils/roles/Vanguard.h

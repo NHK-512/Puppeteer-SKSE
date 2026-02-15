@@ -1,5 +1,4 @@
 #include "CombatStyleManager.h"
-using namespace CombatStyleManager;
 using namespace nlohmann;
 
 RE::TESCombatStyle* CloneCombatStyle(RE::TESCombatStyle* original)
@@ -20,22 +19,10 @@ RE::TESCombatStyle* CloneCombatStyle(RE::TESCombatStyle* original)
 	return clonedCmbStl;
 }
 
-void profileFilterFromJSON(char type, combatStyleProf::mults& profile)
+void CombatStyleManager::profileFilterFromJSON(char type, combatStyleProf::mults& profile)
 {
 	switch (type)
 	{
-	//case 'L':
-	//	if (cfg.contains("roles") && cfg["roles"].contains("Leader"))
-	//		combatStyleProf::setJSONToProfile(cfg["roles"]["Leader"], profile);
-	//	break;
-	//case 'R':
-	//	if (cfg.contains("roles") && cfg["roles"].contains("Ranger"))
-	//		combatStyleProf::setJSONToProfile(cfg["roles"]["Ranger"], profile);
-	//	break;
-	//default:
-	//	if (cfg.contains("roles") && cfg["roles"].contains("Vanguard"))
-	//		combatStyleProf::setJSONToProfile(cfg/*["roles"]*/["Vanguard"], profile);
-	//	break;
 	case 'L':
 		if (configData.contains("Leader"))
 			combatStyleProf::setJSONToProfile(configData["Leader"], profile);
@@ -55,21 +42,16 @@ void profileFilterFromJSON(char type, combatStyleProf::mults& profile)
 	}
 }
 
-void CombatStyleManager::flashFallBackMult(RE::TESNPC* npc, char type, bool toggle)
+void CombatStyleManager::handleHesitation(combatStyleProf::mults& profile)
 {
-	if (configData.empty())	return;	
-
-	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());
-	profileFilterFromJSON(type, tmpProfile);
-	if (toggle)
-		tmpProfile.fallback *= 3;
-	else
-		tmpProfile.fallback /= 3;
-	combatStyleProf::setProfileToStyle(tmpProfile, tmpStyle);
-	npc->SetCombatStyle(tmpStyle);
+	profile.fallback += hesitationModifier;
+	profile.avoidThreatChance += hesitationModifier;
+	profile.grpOffensive -= hesitationModifier;
+	profile.offensive -= hesitationModifier;
+	profile.defensive += (hesitationModifier / 2);
 }
 
-combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type)
+combatStyleProf::mults CombatStyleManager::AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type)
 {
 	//Gets config data from JSON
 	//failsafe if JSON ends up empty, that combat style will remain unchanged
@@ -85,8 +67,12 @@ combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile,
 	//cloning new style from 
 	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());
 
+	//Hesitation Logic
+	if (hesitationModifier != 0)
+		handleHesitation(profile);
+
 	//converting profile to style
-	combatStyleProf::setProfileToStyle(profile, tmpStyle);
+	setProfileToStyle(profile, tmpStyle);
 
 	//setting new style
 	npc->SetCombatStyle(tmpStyle);
@@ -97,7 +83,7 @@ combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile,
 void CombatStyleManager::AssignAndCache
 (
 	const std::unordered_map<RE::FormID, char>& roleList,
-	profileCollection &collection,
+	CombatStyle::profileCollection &collection,
 	const json& jsonStyleSettings
 )
 {
@@ -109,12 +95,15 @@ void CombatStyleManager::AssignAndCache
 	for (auto i = roleList.begin(); i != roleList.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
+
+		#pragma region Safety Checks
 		if (!npc) continue;
 		if (npc && (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded())) continue;
 		auto actorBase = npc->GetActorBase();
 		if (!actorBase) continue;
 		auto cmbStyle = actorBase->GetCombatStyle();
 		if (!cmbStyle) continue;
+#pragma endregion
 
 		//Caching original styles (will not overwrite existing original style 
 		// on the second cycle onwards
@@ -129,7 +118,7 @@ void CombatStyleManager::AssignAndCache
 
 void CombatStyleManager::ReturnCached(
 	const std::unordered_map<RE::FormID, char>& currentRoles,
-	profileCollection& collection
+	CombatStyle::profileCollection& collection
 )
 {
 	if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
@@ -185,3 +174,10 @@ void CombatStyleManager::ReturnCachedSingle(
 
 	cachedList.erase(deadTarget);
 }
+
+void CombatStyleManager::setHesitationValue(float a_value)
+{
+	hesitationModifier = a_value;
+}
+
+

@@ -11,11 +11,11 @@ void Ranger::WriteDefaultProfileToJSON(nlohmann::json& j)
     j["roles"]["Ranger"]["strafe"] = 0.8f;
 }
 
-void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::Actor* player)
+void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::PlayerCharacter* player)
 {
     if (!player || vanguards.empty() || !ranger) return;	
 
-    const auto playerPos = player->GetPosition();
+    auto playerPos = player->GetPosition();
 
     // Find the furthest vanguard distance
     float maxVanguardDistance = 0.0f;

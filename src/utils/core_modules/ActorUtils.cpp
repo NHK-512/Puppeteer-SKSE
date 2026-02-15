@@ -24,16 +24,6 @@ RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, const std:
 	return closestActor;
 }
 
-void ActorUtils::flashMultiplier(
-	const std::unordered_map<RE::FormID, char>& roles,
-	json flashParams)
-	//int second,
-	//int duration)
-{
-	if (roles.empty())
-		return;
-}
-
 std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(
 	const std::unordered_map<RE::FormID, char>& roles, 
 	char roleType)
@@ -78,7 +68,8 @@ bool IsValidForDelete(RE::Actor* actor)
 
 void ActorUtils::DeadActorsCleanup(
 	std::unordered_map<RE::FormID, char>& roles, 
-	CombatStyleManager::profileCollection& collection,
+	CombatStyle::profileCollection& collection,
+	CombatStyleManager& CSManager,
 	bool IsInCombat
 )
 {
@@ -106,41 +97,12 @@ void ActorUtils::DeadActorsCleanup(
 			(actor->IsDead() ||IsValidForDelete(actor))
 		)
 		{
-			CombatStyleManager::ReturnCachedSingle(collection.original, i->first);
+			CSManager.ReturnCachedSingle(collection.original, i->first);
 			if (collection.modified.contains(i->first))
 				collection.modified.erase(i->first);
 			if (roles.contains(i->first))
 				roles.erase(i->first);
 		}
 	}
-}
-
-//void ActorUtils::checkGroupCombatStyle(std::unordered_map<RE::FormID, char> roles)
-//{
-//	RE::Actor* actor;
-//
-//	if (roles.size() <= 1)
-//		return;
-//
-//	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
-//	{
-//		actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
-//		auto cmbStyle = actor->GetActorBase()->GetCombatStyle();
-//
-//		CONSOLE_LOG("Actor {} has style: {} , with ID {:X}", 
-//					 actor->GetDisplayFullName(), cmbStyle->GetFormEditorID(), cmbStyle->GetFormID());
-//	}
-//}
-//
-
-bool ActorUtils::dmgTaken(RE::Actor* npc)
-{
-	if (!npc)			return 0;
-	if (npc->IsDead())	return 0;
-
-	if (npc->HasBeenAttacked())
-		return 1;
-		
-	return 0;
 }
 

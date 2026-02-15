@@ -121,22 +121,22 @@ int ConfigLoader::GetDeathHesitationDuration()
 		cachedJSON = ConfigLoader::LoadConfig();
 
 	if (!cachedJSON.contains("SideFeatures"))
-		return 5; //5 seconds
+		return 6; //5 seconds
 
 	if (!cachedJSON["SideFeatures"].contains("Hesitation"))
-		return 5;
+		return 6;
 
 	if (!cachedJSON["SideFeatures"]["Hesitation"].contains("ReactionDuration"))
-		return 5;
+		return 6;
 
 	if (cachedJSON["SideFeatures"]["Hesitation"]["ReactionDuration"].is_null())
 	{
 		consoleUtils::Log("[Puppeteer] Invalid setting '{}:{}:{}' — using default {}",
-			"SideFeatures", "Hesitation", "ReactionDuration", 5);
-		return 5;
+			"SideFeatures", "Hesitation", "ReactionDuration", 6);
+		return 6;
 	}
 
-	return cachedJSON["SideFeatures"]["Hesitation"].value("ReactionDuration", 5);
+	return cachedJSON["SideFeatures"]["Hesitation"].value("ReactionDuration", 6);
 }
 int ConfigLoader::GetInstantKillTime()
 {
@@ -144,20 +144,20 @@ int ConfigLoader::GetInstantKillTime()
 		cachedJSON = ConfigLoader::LoadConfig();
 
 	if (!cachedJSON.contains("SideFeatures"))
-		return 5; //5 seconds
+		return 4; //5 seconds
 
 	if (!cachedJSON["SideFeatures"].contains("Hesitation"))
-		return 5;
+		return 4;
 
 	if (!cachedJSON["SideFeatures"]["Hesitation"].contains("InstantKillTime"))
-		return 5;
+		return 4;
 
 	if (cachedJSON["SideFeatures"]["Hesitation"]["InstantKillTime"].is_null())
 	{
 		consoleUtils::Log("[Puppeteer] Invalid setting '{}:{}:{}' — using default {}",
-			"SideFeatures", "Hesitation", "InstantKillTime", 3);
-		return 5;
+			"SideFeatures", "Hesitation", "InstantKillTime", 4);
+		return 4;
 	}
 
-	return cachedJSON["SideFeatures"]["Hesitation"].value("InstantKillTime", 3);
+	return cachedJSON["SideFeatures"]["Hesitation"].value("InstantKillTime", 4);
 }

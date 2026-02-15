@@ -8,38 +8,53 @@
 #include "../roles/Ranger.h"
 #include "../roles/Vanguard.h"
 #include "../roles/Striker.h"
-#include "../core_modules/ConfigLoader.h"
+#include "../core_modules/FileLoaders/ConfigLoader.h"
 #include "CombatStyleProfiles.h"
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
-static json configData = json::object();
 
-namespace CombatStyleManager 
+
+namespace CombatStyle
 {
-	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
-	static RE::TESCombatStyle* tmpStyle;
-	static combatStyleProf::mults tmpProfile;
-	
 	struct profileCollection
 	{
 		std::unordered_map< RE::FormID, combatStyleProf::mults> original;
 		std::unordered_map< RE::FormID, combatStyleProf::mults> modified;
 		//std::unordered_map< RE::FormID,combatStyleProf::mults> final; //for profile blending step
 	};
+}
 
-	void flashFallBackMult(RE::TESNPC* npc, char type, bool toggle);
 
+class CombatStyleManager
+{
+public:
 	//Asssign custom Combat Styles from list and cache original style into output
-	void AssignAndCache(
-		const std::unordered_map<RE::FormID, char>& roleList, 
-		profileCollection& collection,
-		const json& jsonStyleSettings);
+	void AssignAndCache
+	(
+		const std::unordered_map<RE::FormID, char>& roleList,
+		CombatStyle::profileCollection& collection,
+		const json& jsonStyleSettings
+	);
 	//Accepts a cached list of combatants and revert their styles to original
 	void ReturnCached(
 		const std::unordered_map<RE::FormID, char>& currentRoles,
-		profileCollection& collection
+		CombatStyle::profileCollection& collection
 	);
 	//Accepts a cached list of combatants and revert style of a singular actor
-	void ReturnCachedSingle(std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, 
+	void ReturnCachedSingle(std::unordered_map<RE::FormID, combatStyleProf::mults>& cachedList,
 		const RE::FormID deadForm);
-}
+
+	void setHesitationValue(float a_value);
+
+private:
+	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
+	json configData = json::object();
+	RE::TESCombatStyle* tmpStyle;
+	combatStyleProf::mults tmpProfile;
+	float hesitationModifier = 0.0f;
+
+	combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type);
+	void profileFilterFromJSON(char type, combatStyleProf::mults& profile);
+	void flashFallback(float a_value, const std::unordered_map< RE::FormID, combatStyleProf::mults>& modifiedCmbs);
+	void handleHesitation(combatStyleProf::mults& profile);
+};
