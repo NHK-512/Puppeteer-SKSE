@@ -2,10 +2,13 @@
 #include <nlohmann/json.hpp>
 #include "../core_modules/CombatData.h"
 #include "../cmbStl_modules/CombatStyleManager.h"
+#include "../cmbStl_modules/CombatStyleProfiles.h"
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
-namespace Vanguard
+namespace Caster
 {
 	void WriteDefaultProfileToJSON(nlohmann::json& j);
-	bool AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs);
+	bool AssignRole(RE::Actor*& actor, 
+		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs
+	);
 }

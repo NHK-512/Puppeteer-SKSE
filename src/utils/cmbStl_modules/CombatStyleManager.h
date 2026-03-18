@@ -8,28 +8,59 @@
 #include "../roles/Ranger.h"
 #include "../roles/Vanguard.h"
 #include "../roles/Striker.h"
-#include "../core_modules/ConfigLoader.h"
+#include "../core_modules/FileLoaders/ConfigLoader.h"
 #include "CombatStyleProfiles.h"
+#include "../core_modules/CombatData.h"
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
-namespace CombatStyleManager 
+
+
+namespace CombatStyle
 {
-	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
-	
 	struct profileCollection
 	{
 		std::unordered_map< RE::FormID, combatStyleProf::mults> original;
 		std::unordered_map< RE::FormID, combatStyleProf::mults> modified;
 		//std::unordered_map< RE::FormID,combatStyleProf::mults> final; //for profile blending step
 	};
+}
 
+
+class CombatStyleManager
+{
+public:
 	//Asssign custom Combat Styles from list and cache original style into output
-	void AssignAndCache(std::unordered_map<RE::FormID, char> roleList, profileCollection& collection);
+	void AssignAndCache
+	(
+		//const std::unordered_map<RE::FormID, char>& roleList,
+		//CombatStyle::profileCollection& collection,
+		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
+		const json& jsonStyleSettings
+	);
 	//Accepts a cached list of combatants and revert their styles to original
 	void ReturnCached(
-		std::unordered_map<RE::FormID, char>& currentRoles,
-		profileCollection& collection
+		//const std::unordered_map<RE::FormID, char>& currentRoles,
+		//CombatStyle::profileCollection& collection
+		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord
 	);
 	//Accepts a cached list of combatants and revert style of a singular actor
-	void ReturnCachedSingle(std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, RE::FormID deadForm);
-}
+	void ReturnCachedSingle(
+		//std::unordered_map<RE::FormID, combatStyleProf::mults>& cachedList,
+		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
+		const RE::FormID deadForm
+	);
+
+	void setHesitationValue(float a_value);
+
+private:
+	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
+	json configData = json::object();
+	RE::TESCombatStyle* tmpStyle;
+	combatStyleProf::mults tmpProfile;
+	float hesitationModifier = 0.0f;
+
+	combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type);
+	void profileFilterFromJSON(char type, combatStyleProf::mults& profile);
+	//void flashFallback(float a_value, const std::unordered_map< RE::FormID, combatStyleProf::mults>& modifiedCmbs);
+	void handleHesitation(combatStyleProf::mults& profile);
+};

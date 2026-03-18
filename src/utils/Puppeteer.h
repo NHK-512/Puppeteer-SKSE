@@ -4,8 +4,12 @@
 #include "roles/Ranger.h"
 #include "roles/Vanguard.h"
 #include "roles/Striker.h"
+#include "roles/Caster.h"
 #include "core_modules/EnemyScanner.h"
 #include "core_modules/ActorUtils.h"
+#include "core_modules/ConsoleUtils.h"
+#include "core_modules/FileLoaders/ConfigLoader.h"
+#include "core_modules/CombatData.h"
 
 #include <unordered_map>
 #include <vector>
@@ -15,10 +19,22 @@
 static bool vangSwitch = false;
 static RE::Actor* tempRanger;
 
-
 namespace Puppeteer 
 {
-	std::unordered_map<RE::FormID, char> AssignRoles(const std::vector<RE::FormID>& npcIDs);
-	void rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player);
-	void Listen(std::unordered_map<RE::FormID, char>& roles, int cycleTime);
+	/*struct survivalTime
+	{
+		RE::FormID formID;
+		int seconds;
+		bool isAttacked;
+	};*/
+
+	//static std::vector<survivalTime> survivalTimes;
+
+	void AssignRoles(
+		const std::vector<RE::FormID>& npcIDs, 
+		//std::unordered_map<RE::FormID, char>& assignedNPCs
+		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord
+	);
+	void rangerKeepDistance(const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles, RE::PlayerCharacter*& player);
+	void executeTactics(std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles, RE::PlayerCharacter*& a_player);
 }

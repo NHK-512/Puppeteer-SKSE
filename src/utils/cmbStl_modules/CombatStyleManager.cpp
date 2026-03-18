@@ -1,5 +1,4 @@
 #include "CombatStyleManager.h"
-using namespace CombatStyleManager;
 using namespace nlohmann;
 
 RE::TESCombatStyle* CloneCombatStyle(RE::TESCombatStyle* original)
@@ -20,46 +19,41 @@ RE::TESCombatStyle* CloneCombatStyle(RE::TESCombatStyle* original)
 	return clonedCmbStl;
 }
 
-void profileFilter(char type, combatStyleProf::mults& profile)
+void CombatStyleManager::profileFilterFromJSON(char type, combatStyleProf::mults& profile)
 {
 	switch (type)
 	{
 	case 'L':
-		Leader::GetCombatProfile(profile);
+		if (configData.contains("Leader"))
+			combatStyleProf::setJSONToProfile(configData["Leader"], profile);
 		break;
 	case 'R':
-		Ranger::GetCombatProfile(profile);
+		if (configData.contains("Ranger"))
+			combatStyleProf::setJSONToProfile(configData["Ranger"], profile);
+		break;
+	case 'C':
+		if (configData.contains("Caster"))
+			combatStyleProf::setJSONToProfile(configData["Caster"], profile);
 		break;
 	default:
-		Vanguard::GetCombatProfile(profile);
+		if (configData.contains("Vanguard"))
+			combatStyleProf::setJSONToProfile(configData["Vanguard"], profile);
 		break;
 	}
 }
 
-void profileFilterFromJSON(json cfg, char type, combatStyleProf::mults& profile)
+void CombatStyleManager::handleHesitation(combatStyleProf::mults& profile)
 {
-	switch (type)
-	{
-	case 'L':
-		if (cfg.contains("roles") && cfg["roles"].contains("Leader"))
-			combatStyleProf::setJSONToProfile(cfg["roles"]["Leader"], profile);
-		break;
-	case 'R':
-		if (cfg.contains("roles") && cfg["roles"].contains("Ranger"))
-			combatStyleProf::setJSONToProfile(cfg["roles"]["Ranger"], profile);
-		break;
-	default:
-		if (cfg.contains("roles") && cfg["roles"].contains("Vanguard"))
-			combatStyleProf::setJSONToProfile(cfg["roles"]["Vanguard"], profile);
-		break;
-	}
+	profile.fallback += hesitationModifier;
+	profile.avoidThreatChance += hesitationModifier;
+	profile.grpOffensive -= hesitationModifier;
+	profile.offensive -= hesitationModifier;
+	profile.defensive += (hesitationModifier / 2);
 }
 
-combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type)
+combatStyleProf::mults CombatStyleManager::AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile, char type)
 {
 	//Gets config data from JSON
-	auto configData = ConfigLoader::LoadConfigIfChanged();
-
 	//failsafe if JSON ends up empty, that combat style will remain unchanged
 	if (configData.empty())
 	{
@@ -68,115 +62,159 @@ combatStyleProf::mults AssignCS(RE::TESNPC* npc, combatStyleProf::mults profile,
 	}
 
 	//changes the profile base configData and through a filter using type
-	profileFilterFromJSON(configData, type, profile);
+	profileFilterFromJSON(type, profile);
 
 	//cloning new style from 
-	auto customStyle = CloneCombatStyle(npc->GetCombatStyle());
+	tmpStyle = CloneCombatStyle(npc->GetCombatStyle());
+
+	//Hesitation Logic
+	if (hesitationModifier != 0)
+		handleHesitation(profile);
 
 	//converting profile to style
-	combatStyleProf::setProfileToStyle(profile, customStyle);
+	setProfileToStyle(profile, tmpStyle);
 
 	//setting new style
-	npc->SetCombatStyle(customStyle);
+	npc->SetCombatStyle(tmpStyle);
 
 	return profile;
 }
 
 void CombatStyleManager::AssignAndCache
 (
-	std::unordered_map<RE::FormID, char> roleList,
-	profileCollection &collection
+	//const std::unordered_map<RE::FormID, char>& roleList,
+	//CombatStyle::profileCollection &collection,
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
+	const json& jsonStyleSettings
 )
 {
-	/*profileCollection collection;
-	std::unordered_map<RE::FormID, combatStyleProf::mults> original;
-	std::unordered_map<RE::FormID, combatStyleProf::mults> modified;*/
-
-	if (roleList.size() < ConfigLoader::GetMinimumActors())
+	if (combatRecord.size() < ConfigLoader::GetMinimumActors())
 		return;
 
-	for (std::unordered_map<RE::FormID, char>::iterator i = roleList.begin(); i != roleList.end(); i++)
+	configData = jsonStyleSettings;
+
+	for (auto i = combatRecord.begin(); i != combatRecord.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
-		if (!npc || npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded()) continue;
+
+#pragma region Safety Checks
+		if (!npc) continue;
+		if (npc && (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded())) continue;
 		auto actorBase = npc->GetActorBase();
 		if (!actorBase) continue;
 		auto cmbStyle = actorBase->GetCombatStyle();
 		if (!cmbStyle) continue;
+#pragma endregion
 
 		//Caching original styles (will not overwrite existing original style 
 		// on the second cycle onwards
+		if (i->second.original.initialized == false)
+		{
+			i->second.original = combatStyleProf::initializeGen(cmbStyle);
+			i->second.original.initialized = true;
 
-		//if(!original.empty() && original.contains(i->first))
-		if (!collection.original.contains(i->first))
-			collection.original[i->first] = combatStyleProf::initializeGen(cmbStyle);
-
-		//assigning and caching modified styles.
-		// Will overwrite existing key's values no matter what
-		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
+			//assigning and caching modified styles.
+			// Will overwrite existing key's values no matter what
+			i->second.modified = AssignCS(actorBase, i->second.original, i->second.role);
+		}
 	}
 
-	/*if (collection.original.size() > currentRoles.size() &&
-		collection.modified.size() > currentRoles.size())
-	{
-		for (auto j = collection.original.begin(); j != collection.original.end(); j++)
-		{
-			if (currentRoles.find(j->first) == currentRoles.end())
-			{
-				collection.original.erase(j);
-				collection.modified.erase(j);
-			}
-		}
-	}*/
+//	for (auto i = roleList.begin(); i != roleList.end(); i++)
+//	{
+//		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
+//
+//		#pragma region Safety Checks
+//		if (!npc) continue;
+//		if (npc && (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded())) continue;
+//		auto actorBase = npc->GetActorBase();
+//		if (!actorBase) continue;
+//		auto cmbStyle = actorBase->GetCombatStyle();
+//		if (!cmbStyle) continue;
+//#pragma endregion
+//
+//		//Caching original styles (will not overwrite existing original style 
+//		// on the second cycle onwards
+//		if (!collection.original.contains(i->first))
+//			collection.original[i->first] = combatStyleProf::initializeGen(cmbStyle);
+//
+//		//assigning and caching modified styles.
+//		// Will overwrite existing key's values no matter what
+//		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
+//	}
 }
 
 void CombatStyleManager::ReturnCached(
-	std::unordered_map<RE::FormID, char>& currentRoles,
-	profileCollection& collection
+	//const std::unordered_map<RE::FormID, char>& currentRoles,
+	//CombatStyle::profileCollection& collection
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord
 )
 {
-	if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
+	//if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
+	if (combatRecord.empty()) return;
 
-	for (std::unordered_map<RE::FormID, char>::iterator
-		i = currentRoles.begin(); i != currentRoles.end(); i++)
+
+	//for (auto i = currentRoles.begin(); i != currentRoles.end(); i++)
+	for(auto i = combatRecord.begin(); i != combatRecord.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (!npc) continue;
-		if (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded()) continue;
+		if (npc && (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded())) continue;
 		auto npcBase = npc->GetActorBase();
 		if (!npcBase)
 		{
 			CONSOLE_LOG("[Puppeteer] actor base is invalid");
 			continue;
 		}
-		auto style = CloneCombatStyle(npcBase->GetCombatStyle());
+		tmpStyle = CloneCombatStyle(npcBase->GetCombatStyle());
 
-		if (!style)
+		if (!tmpStyle)
 		{
 			CONSOLE_LOG("[Puppeteer] style is invalid, not returning back to owner");
 			continue;
 		}
-		style = combatStyleProf::setProfileToStyle(collection.original.find(i->first)->second, style);
 
-		npcBase->SetCombatStyle(style);
+		//Only return the original style when it's initiallized
+		//Otherwise, their original style will all be 0 on the next time this function is ran
+		if (i->second.original.initialized)
+		{
+			combatStyleProf::setProfileToStyle(i->second.original,tmpStyle);
 
-		collection.modified.erase(i->first);
-		collection.original.erase(i->first);
-		currentRoles.erase(i);
+			npcBase->SetCombatStyle(tmpStyle);
+		}
+
+		combatRecord.erase(i);
 	}
 }
 
-void CombatStyleManager::ReturnCachedSingle(std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, RE::FormID deadForm)
+void CombatStyleManager::ReturnCachedSingle(
+	//std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, 
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
+	const RE::FormID deadForm)
 {
-	auto deadTarget = cachedList.find(deadForm);
-	if (deadTarget == cachedList.end())
+	auto deadTarget = combatRecord.find(deadForm);
+	if (deadTarget == combatRecord.end())
 		return;
 
-	auto npc = RE::TESForm::LookupByID<RE::Actor>(deadForm)->GetActorBase();
-	auto ogStyle = CloneCombatStyle(npc->GetCombatStyle());
-	ogStyle = combatStyleProf::setProfileToStyle(deadTarget->second, ogStyle);
+	auto npc = RE::TESForm::LookupByID<RE::Actor>(deadForm);
+	if (!npc)
+	{
+		auto npcBase = npc->GetActorBase();
+		if (npcBase)
+		{
+			tmpStyle = CloneCombatStyle(npcBase->GetCombatStyle());
+			combatStyleProf::setProfileToStyle(deadTarget->second.original, tmpStyle);
 
-	npc->SetCombatStyle(ogStyle);
-
-	cachedList.erase(deadTarget);
+			npcBase->SetCombatStyle(tmpStyle);
+		}
+	}
+	
+	combatRecord.erase(deadTarget);
+	//cachedList.erase(deadTarget);
 }
+
+void CombatStyleManager::setHesitationValue(float a_value)
+{
+	hesitationModifier = a_value;
+}
+
+

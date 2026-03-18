@@ -1,12 +1,13 @@
 #include "EnemyScanner.h"
 
-std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
+void EnemyScanner::GetHostileNPCsNearPlayer(float radius, std::vector<RE::FormID>& enemies)
 {
-    std::vector<RE::FormID> hostileIDs;
+    if (!enemies.empty())
+        enemies.clear();
 
     auto* player = RE::PlayerCharacter::GetSingleton();
     if (!player)
-        return hostileIDs;
+        return;
 
     const auto playerPos = player->GetPosition();
 
@@ -16,7 +17,8 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
         if (!actor || actor == player)
             continue;
 
-        if (!actor->GetRace()->GetPlayable())
+        if (!actor->GetRace()->GetPlayable() && 
+            std::strstr(actor->GetDisplayFullName(),"Vampire") == nullptr) //support for vampires
             continue;
 
         if (!actor->IsHostileToActor(player))
@@ -28,11 +30,14 @@ std::vector<RE::FormID> EnemyScanner::GetHostileNPCsNearPlayer(float radius)
         if (actor->AsActorState()->IsBleedingOut())
             continue;
 
+        if (actor->IsInKillMove())
+            continue;
+
         const auto dist = playerPos.GetDistance(actor->GetPosition());
-        if (dist <= radius) {
-            hostileIDs.push_back(actor->GetFormID());
+        if (dist <= radius &&
+            std::find(enemies.begin(), enemies.end(), actor->GetFormID()) == enemies.end())
+        {
+            enemies.push_back(actor->GetFormID());
         }
     }
-
-    return hostileIDs;
 }

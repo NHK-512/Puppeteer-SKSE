@@ -1,170 +1,61 @@
 #include "Puppeteer.h"
 
-bool skipAssignedRanger(std::unordered_map<RE::FormID, char> roleList, RE::Actor* npc)
+bool isRangerOrVanguard(const std::unordered_map<RE::FormID, char>& roleList, RE::Actor* npc)
 {
     //if the npc in the list a ranger (R), returns false = skip
-    if (roleList[npc->GetFormID()] == 'R')
+    if (roleList.find(npc->GetFormID())->second == 'R' ||
+        roleList.find(npc->GetFormID())->second == 'V')
         return 0;
 
     return 1;
 }
 
-std::unordered_map<RE::FormID, char> Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs)
+void Puppeteer::AssignRoles(
+    const std::vector<RE::FormID>& npcIDs, 
+    //std::unordered_map<RE::FormID, char>& assignedNPCs
+    std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs
+)
 {
-    std::unordered_map<RE::FormID, char> roleList;
+    if (npcIDs.empty())
+        return;
+    //std::unordered_map<RE::FormID, char> roleList;
     std::vector<RE::Actor*> hostiles;
 
     for (auto formID : npcIDs) {
         auto* form = RE::TESForm::LookupByID(formID);
         if (form) {
-            if (auto* actor = form->As<RE::Actor>()) {
+            auto actor = form->As<RE::Actor>();
+            //if (auto* actor = form->As<RE::Actor>() && actor-) 
+            if(actor && (actor->Is3DLoaded() && !actor->IsDead()))
+            {
                 hostiles.push_back(actor);
             }
         }
     }
 
     if (hostiles.empty()) {
-        return roleList;
+        return;//roleList;
     }
 
-    // --- Assign Leader ---
-    auto comparator = [](RE::Actor* a, RE::Actor* b) 
+    RE::Actor* leader = nullptr;
+    for (auto* actor : hostiles)
     {
-        const auto avA = a->AsActorValueOwner();
-        const auto avB = b->AsActorValueOwner();
-
-        float levelA = a->GetLevel();
-        float levelB = b->GetLevel();
-        if (levelA != levelB)
-            return levelA > levelB;
-
-        float armorA = avA->GetActorValue(RE::ActorValue::kDamageResist);
-        float armorB = avB->GetActorValue(RE::ActorValue::kDamageResist);
-        if (armorA != armorB)
-            return armorA > armorB;
-
-        auto weaponA = a->GetEquippedObject(true);
-        auto weaponB = b->GetEquippedObject(true);
-
-        float dmgA = 0.0f;
-        float dmgB = 0.0f;
-        if (weaponA) 
-        {
-            if (auto weap = weaponA->As<RE::TESObjectWEAP>()) 
-            {
-                dmgA = weap->attackDamage;
-            }
-        }
-        if (weaponB) 
-        {
-            if (auto weap = weaponB->As<RE::TESObjectWEAP>()) 
-            {
-                dmgB = weap->attackDamage;
-            }
-        }
-        return dmgA > dmgB;
-    };
-
-    auto sorted = hostiles;
-    std::sort(sorted.begin(), sorted.end(), comparator);
-
-    RE::Actor* leader = sorted.front();
-    //Leader::Assign(leader);
-    roleList[leader->GetFormID()] = 'L';
-
-    // --- Assign Ranger ---
-    for (auto* actor : hostiles) {
-        if (actor == leader) continue;
-
-        const auto inv = actor->GetInventory();
-        for (const auto& [item, data] : inv) {
-            if (!item || !data.second) continue;
-            if (data.first <= 0) continue;
-
-            if (const auto weap = item->As<RE::TESObjectWEAP>()) {
-                if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow")) 
-                {
-                    roleList[actor->GetFormID()] = 'R';
-                    break;
-                }
-            }
-        }
+        if (!leader && Leader::AssignRole(actor, assignedNPCs, leader)) continue;
+        if (Ranger::AssignRole(actor, assignedNPCs)) continue;
+        if (Caster::AssignRole(actor, assignedNPCs)) continue;
+        if (Vanguard::AssignRole(actor, assignedNPCs)) continue;
+        //fallback if NPC don't fit with any role
+        if (assignedNPCs.find(actor->GetFormID()) == assignedNPCs.end())
+            assignedNPCs[actor->GetFormID()].role = 'V';
     }
 
-    // --- Assign Vanguard ---
-    std::vector<RE::Actor*> assignedVang;
-    assignedVang.push_back(leader);
-
-    for (auto* actor : hostiles) {
-        if (actor == leader) continue;
-
-        const auto inv = actor->GetInventory();
-
-        for (const auto& [item, data] : inv) {
-            if (!item || !data.second) continue;
-            if (data.first <= 0) continue;
-
-            if (const auto armor = item->As<RE::TESObjectARMO>()) {
-                if (armor->HasKeywordString("ArmorShield")) {
-                    assignedVang.push_back(actor);
-                    roleList[actor->GetFormID()] = 'V';
-                    break;
-                }
-            }
-        }
-    }
-
-    if (std::count_if(assignedVang.begin(), 
-        assignedVang.end(), 
-        [&](auto* a) 
-        { return a != leader; }) == 0) 
-    {
-        for (auto* actor : hostiles) {
-            if (actor == leader) continue;
-
-            const auto inv = actor->GetInventory();
-            for (const auto& [item, data] : inv) {
-                if (!item || !data.second) continue;
-                if (data.first <= 0) continue;
-
-                if (const auto weap = item->As<RE::TESObjectWEAP>()) {
-                    if (weap->IsTwoHandedSword() || weap->IsTwoHandedAxe()) {
-                        assignedVang.push_back(actor);
-                        roleList[actor->GetFormID()] = 'V';
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    // --- Assign Vanguard fallback ---
-    for (auto* actor : hostiles) {
-        if (std::find(assignedVang.begin(), assignedVang.end(), actor) == assignedVang.end() &&
-            skipAssignedRanger(roleList, actor))
-        {
-            roleList[actor->GetFormID()] = 'V';
-        }
-    }
-    return roleList;
+    //fallback if leader is not found
+    if (!leader)
+        leader = *hostiles.begin();
+    assignedNPCs[leader->GetFormID()].role = 'L';
 }
 
-#pragma region Ranger Utilities
-void Puppeteer::rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player)
-{
-    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
-
-    for (int iR = 0; iR < rangers.size(); iR++)
-    {
-        Ranger::KeepDistanceAwayPlayer(
-            rangers[iR],
-            ActorUtils::extractActorsFromRoles(roles, 'V'),
-            player
-        );
-    }
-}
-
-bool ifRoleIsDead(std::vector<RE::Actor*> actors)
+bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
 {
     int deathCount = 0;
 
@@ -182,6 +73,40 @@ bool ifRoleIsDead(std::vector<RE::Actor*> actors)
     if (deathCount == actors.size())
         return 1;
     return 0;
+}
+
+//void initSurvivalTimeMap(const std::unordered_map<RE::FormID, char>& roles)
+//{
+//    using namespace Puppeteer;
+//    if (!survivalTimes.empty())
+//        survivalTimes.clear();
+//
+//    for (const auto& i : roles) {
+//        survivalTimes.push_back({ i.first, 0, 0 });
+//    }
+//}
+
+#pragma region Ranger Utilities
+void Puppeteer::rangerKeepDistance(
+    const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
+    //const std::unordered_map<RE::FormID, char>& roles, 
+    RE::PlayerCharacter*& player)
+{
+    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
+    if (rangers.empty() ||
+        ifRoleIsDead(rangers))
+    {
+        return;
+    }
+
+    for (int iR = 0; iR < rangers.size(); iR++)
+    {
+        Ranger::KeepDistanceAwayPlayer(
+            rangers[iR],
+            ActorUtils::extractActorsFromRoles(roles, 'V'),
+            player
+        );
+    }
 }
 
 struct BowEntry {
@@ -283,17 +208,32 @@ RE::TESAmmo* getArrowRefFromRangerCorpse_2(RE::Actor* aliveActor, std::vector<RE
     return corpse->GetCurrentAmmo();
 }
 
-void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
+void RangerCheckAndReplace(std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles)
 {
-    if (!ifRoleIsDead(ActorUtils::extractActorsFromRoles(roles, 'R')))
+    auto vangList = ActorUtils::extractActorsFromRoles(roles, 'V');
+    auto rangList = ActorUtils::extractActorsFromRoles(roles, 'R');
+
+    //checking if all Rangers are dead or not
+    if (!ifRoleIsDead(rangList))
     {
+        return;
+    }
+    consoleUtils::Log("[Puppeteer] All Rangers are dead. Attempting replace with Vanguard");
+
+    //checking if any Vanguards are alive
+    if (vangList.empty() ||
+        ifRoleIsDead(vangList)
+    )
+    {
+        if(consoleUtils::TriggerOnce("NO_VANGS", (vangList.empty() || ifRoleIsDead(vangList))))
+            consoleUtils::Log("[Puppeteer] No Vanguards available. Skipping replacement!");
         return;
     }
 
 #pragma region declarations
-    RE::Actor* vang = ActorUtils::extractActorsFromRoles(roles, 'V').front();
+    auto vang = vangList.front();
     auto equipManager = RE::ActorEquipManager::GetSingleton();
-    auto* bowWeap = getBowFromRangerBody(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+    auto* bowWeap = getBowFromRangerBody(vang, rangList);
     auto* bowRef = getClosestBowToActor(vang);
 #pragma endregion
     //CONSOLE_LOG("Declaration complete.");
@@ -302,7 +242,7 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
     auto vangID = vang->GetFormID();
     if (roles.find(vangID) != roles.end())
     {
-        roles.find(vangID)->second = 'R';
+        roles.find(vangID)->second.role = 'R';
         //CONSOLE_LOG("Reassignment complete");
     }
     else
@@ -339,11 +279,11 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 
 #pragma region Arrow equip
 
-    auto* arrowRef = getArrowRefFromRangerCorpse(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+    auto* arrowRef = getArrowRefFromRangerCorpse(vang, rangList);
 
     if (!arrowRef)
     {
-        arrowRef = getArrowRefFromRangerCorpse_2(vang, ActorUtils::extractActorsFromRoles(roles, 'R'));
+        arrowRef = getArrowRefFromRangerCorpse_2(vang, rangList);
         if (!arrowRef)
             arrowRef = RE::TESForm::LookupByID<RE::TESAmmo>(0x1397D);
     }
@@ -358,29 +298,25 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
         //CONSOLE_LOG("Arrow equip unsuccessful...");
 
 #pragma endregion
-    //CONSOLE_LOG("End of reassignment");
 }
 
 #pragma endregion
 
-void Puppeteer::Listen(std::unordered_map<RE::FormID, char> &roles, int cycleTime)
-{  
-    std::jthread([cycleTime, &roles]() {
-        using namespace std::chrono_literals;
-
-        for (int i = 0; i < (cycleTime-1) * 2; ++i) {  // check for up to 10 seconds
-            std::this_thread::sleep_for(500ms);
-
-            SKSE::GetTaskInterface()->AddUITask([i, cycleTime, &roles]()
-            {
-                auto* player = RE::PlayerCharacter::GetSingleton();
-                if(roles.size() > 1)
-                {
-                    Puppeteer::rangerKeepDistance(roles, player);
-                    RangerCheckAndReplace(roles);
-                }
-            });
-            
-        }
-    }).detach();
+void Puppeteer::executeTactics(
+    //std::unordered_map<RE::FormID, char>& roles, 
+    std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
+    RE::PlayerCharacter*& a_player
+)
+{
+    //initSurvivalTimeMap(roles);
+    if (ConfigLoader::GetRangTakeCoverFeature())
+    {
+        Puppeteer::rangerKeepDistance(roles, a_player);
+        //CONSOLE_LOG("[Puppeteer] Ranger role is taking cover!");
+    }
+    if (ConfigLoader::GetVangReplaceRang())
+    {
+        RangerCheckAndReplace(roles);
+        //CONSOLE_LOG("[Puppeteer] Attempting Ranger replacement from Vanguard!");
+    }
 }

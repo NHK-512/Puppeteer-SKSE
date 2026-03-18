@@ -1,7 +1,7 @@
 #pragma once
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
-
+#include <nlohmann/json.hpp>
 using namespace nlohmann;
 
 namespace combatStyleProf
@@ -25,12 +25,15 @@ namespace combatStyleProf
 		float bashAtk = 0;
 		float bashPatk = 0;
 		float specialAtk = 0;
+		bool initialized = false;
 	};
 
 	//Initializes and save a copy of each value into a profile
 	mults initializeGen(RE::TESCombatStyle* original);
 	//Converts the profile back to Combat Style
-	RE::TESCombatStyle* setProfileToStyle(mults profile, RE::TESCombatStyle* style);
+	//RE::TESCombatStyle* 
+	void
+	setProfileToStyle(mults profile, RE::TESCombatStyle*& style);
 
 	//Converts the config JSON to a Profile depending on the role mentioned
 	void setJSONToProfile(nlohmann::json config, mults& profile);

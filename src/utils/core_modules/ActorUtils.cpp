@@ -1,25 +1,7 @@
 #include "ActorUtils.h"
 
 
-bool ActorUtils::dmgTaken(RE::PlayerCharacter* player, RE::Actor* npc)
-{
-	if (!player)
-		player = RE::PlayerCharacter::GetSingleton();
-
-	if (npc->IsDead())
-		return 0;
-
-	if (npc->HasBeenAttacked())
-	{
-		CONSOLE_LOG("NPC {} has been attacked", npc->GetFormID());
-		return 1;
-	}
-		
-
-	return 0;
-}
-
-RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, std::vector<RE::Actor*> otherActors)
+RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, const std::vector<RE::Actor*>& otherActors)
 {
 	auto fromPos = targetActor->GetPosition();
 	RE::NiPoint3 toPos;
@@ -42,7 +24,10 @@ RE::Actor* ActorUtils::getClosestActorToActor(RE::Actor* targetActor, std::vecto
 	return closestActor;
 }
 
-std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(std::unordered_map<RE::FormID, char> roles, char roleType)
+std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(
+	//const std::unordered_map<RE::FormID, char>& roles, 
+	const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
+	char roleType)
 {
 	std::vector<RE::Actor*> outVct;
 	RE::Actor* actor;
@@ -50,27 +35,32 @@ std::vector<RE::Actor*> ActorUtils::extractActorsFromRoles(std::unordered_map<RE
 	if (roles.size() <= 1)
 		return outVct;
 
-	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
+	for (auto i = roles.begin(); i != roles.end(); i++)
 	{
-		if (i->second == roleType)
+		if (i->second.role == roleType)
 		{
 			actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
-			outVct.push_back(actor);
+			if (actor &&
+				actor->Is3DLoaded())
+				outVct.push_back(actor);
 		}
 	}
 
 	return outVct;
 }
 
-bool IsEssentialAndOrProtected(RE::Actor* actor)
+bool IsValidForDelete(RE::Actor* actor)
 {
-	auto base = actor->GetActorBase();
-	auto state = actor->AsActorState();
-	if (base) {
-		if (base->IsEssential() ||	// Only allies can kill them
-			base->IsProtected())	// Only player cannot kill them, but enemies can
-		{
-			return (state && state->IsBleedingOut()) || actor->IsInKillMove();
+	if (actor)
+	{
+		auto base = actor->GetActorBase();
+		auto state = actor->AsActorState();
+		if (base) {
+			if (base->IsEssential() ||	// Only allies can kill them
+				base->IsProtected())	// Only player cannot kill them, but enemies can
+			{
+				return (state && state->IsBleedingOut()) || actor->IsInKillMove();
+			}
 		}
 	}
 
@@ -78,63 +68,92 @@ bool IsEssentialAndOrProtected(RE::Actor* actor)
 }
 
 void ActorUtils::DeadActorsCleanup(
-	std::unordered_map<RE::FormID, char>& roles, 
-	CombatStyleManager::profileCollection& collection,
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
+	ConfidenceChecks& CFDMananager,
+	CombatStyleManager& CSManager,
 	bool IsInCombat
 )
 {
 	if (!IsInCombat )
 	{
-		if(!roles.empty())
-			roles.clear();
-		if(!collection.original.empty())
-			collection.original.clear();
-		if(!collection.modified.empty())
-			collection.modified.clear();
+		if (!combatRecord.empty())
+			combatRecord.clear();
 		return;
 	}
 
-	if (roles.empty())
+	if(combatRecord.empty()) //if still in combat but list is empty
 		return;
 
-	if (collection.original.empty() || collection.modified.empty())
-		return;
-
-	for (auto i = roles.begin(); i != roles.end(); i++)
+	for(auto i = combatRecord.begin(); i != combatRecord.end(); i++)
 	{
 		auto actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (actor &&
-			(actor->IsDead() ||
-			IsEssentialAndOrProtected(actor))
+			(actor->IsDead() ||IsValidForDelete(actor))
 		)
 		{
-			CombatStyleManager::ReturnCachedSingle(collection.original, i->first);
-			if (collection.modified.contains(i->first))
-				collection.modified.erase(i->first);
-			if (roles.contains(i->first))
-				roles.erase(i->first);
+			CFDMananager.returnSingleOriginalConfidence
+			(	i->first
+			,	i->second.originalConfidence
+			,	i->second.modifiedConfidence
+			);
+			CSManager.ReturnCachedSingle(combatRecord, i->first);
+
+			//Failsafe check to ensure deletion from Record
+			if(combatRecord.contains(i->first))
+				combatRecord.erase(i);
 		}
 	}
 }
 
-void ActorUtils::checkGroupCombatStyle(std::unordered_map<RE::FormID, char> roles)
+int randomInt(int min, int max)
 {
-	RE::Actor* actor;
-
-	if (roles.size() <= 1)
-		return;
-
-	for (std::unordered_map<RE::FormID, char>::iterator i = roles.begin(); i != roles.end(); i++)
-	{
-		actor = RE::TESForm::LookupByID<RE::Actor>(i->first);
-		auto cmbStyle = actor->GetActorBase()->GetCombatStyle();
-
-		CONSOLE_LOG("Actor {} has style: {} , with ID {:X}", 
-					 actor->GetDisplayFullName(), cmbStyle->GetFormEditorID(), cmbStyle->GetFormID());
-	}
+	return (std::rand() % (max - min + 1)) + min;
 }
 
-void ActorUtils::csGetModSet(RE::Actor* actor, int type, float newVal)
+std::pair<int, bool> ActorUtils::diceRollOnChance(int percentChance)
 {
+	//If the random number falls below the percentChance -> success
+	int randnum = (randomInt(0, 100) % 100);
+	if (randnum < percentChance)
+		return std::make_pair(randnum, true);
 
+	return std::make_pair(randnum, false);
+}
+
+RE::ActorValueOwner* ActorUtils::GetActorValue(RE::FormID formID)
+{
+	auto* form = RE::TESForm::LookupByID(formID);
+	if (!form) return nullptr;
+	auto actor = form->As<RE::Actor>();
+	if (!actor) return nullptr;
+	if (!actor->Is3DLoaded() && actor->IsDead())	return nullptr;
+	return actor->AsActorValueOwner();
+}
+
+bool ActorUtils::isEnemySilverHand(RE::FormID formID)
+{
+	auto* form = RE::TESForm::LookupByID(formID);
+	if (!form) return false;
+	auto actor = form->As<RE::Actor>();
+	if (!actor) return false;
+	if (!actor->Is3DLoaded() && actor->IsDead())	return false;
+
+	if (std::strstr(actor->GetDisplayFullName(), "Silver Hand") == nullptr)
+		return false;
+
+	return true;
+}
+
+bool ActorUtils::isEnemyVampire(RE::FormID formID)
+{
+	auto* form = RE::TESForm::LookupByID(formID);
+	if (!form) return false;
+	auto actor = form->As<RE::Actor>();
+	if (!actor) return false;
+	if (!actor->Is3DLoaded() && actor->IsDead())	return false;
+
+	if (std::strstr(actor->GetDisplayFullName(), "Vampire") == nullptr)
+		return false;
+
+	return true;
 }

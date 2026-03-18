@@ -10,12 +10,24 @@ using namespace nlohmann;
 static std::filesystem::file_time_type lastModifiedTime = std::filesystem::file_time_type::min();
 static json cachedJSON = json::object();
 
+struct PuppeteerConfig
+{
+	float scanDistance;
+	int secondsPerCycle;
+	int minimumActors;
+	int maxSkipCycles;
+	json* rolesMult;
+};
+
 namespace ConfigLoader
 {
 	const std::string filePath = "Data/SKSE/Plugins/PuppeteerConfig.json";
 
+	//whether or not the config file is changed and saved
+	bool IfConfigChanged();
+
 	//Gets general data from config JSON in JSON format
-	json LoadConfigIfChanged();
+	json LoadConfig();
 
 	int GetSecondsPerCycle();
 
@@ -26,4 +38,15 @@ namespace ConfigLoader
 	int GetSkipCyclesPerCycle();
 
 	bool GetEnabledLogs();
+
+	json GetRolesInfo();
+
+	bool GetRangTakeCoverFeature();
+
+	bool GetVangReplaceRang();
+
+	int GetDeathHesitationDuration();
+	int GetInstantKillTime();
+
+	int GetGlobalConfidenceDownChance();
 }
