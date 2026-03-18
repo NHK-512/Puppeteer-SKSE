@@ -104,7 +104,8 @@ int  ConfigLoader::GetSecondsPerCycle() { return GetValue<int>("General", "Secon
 int  ConfigLoader::GetSkipCyclesPerCycle() { return GetValue<int>("General", "SkippedCycleAmount", 1); }
 int  ConfigLoader::GetMinimumActors() { return GetValue<int>("General", "MinimumActors", 3); }
 bool ConfigLoader::GetEnabledLogs() { return GetValue<bool>("General", "enableLogging", true); }
-json ConfigLoader::GetStyleMults() {
+int  ConfigLoader::GetGlobalConfidenceDownChance() { return GetValue<int>("SideFeatures", "GlobalConfidenceDownChance", -1); }
+json ConfigLoader::GetRolesInfo() {
 	if (cachedJSON.empty())
 		cachedJSON = LoadConfig();
 
@@ -161,3 +162,4 @@ int ConfigLoader::GetInstantKillTime()
 
 	return cachedJSON["SideFeatures"]["Hesitation"].value("InstantKillTime", 4);
 }
+

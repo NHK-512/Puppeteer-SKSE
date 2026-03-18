@@ -34,7 +34,8 @@ void consoleUtils::Log(const std::string& msg)
     }
 }
 
-void consoleUtils::inspectCBStyleOfSelected(std::unordered_map<RE::FormID, char> roleList)
+void consoleUtils::inspectCBStyleOfSelected
+(const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roleList)
 {
     auto target = RE::Console::GetSelectedRefHandle();
 
@@ -67,11 +68,17 @@ void consoleUtils::inspectCBStyleOfSelected(std::unordered_map<RE::FormID, char>
         Log("[Puppeteer] {:x} | {} | {}"
             , formID
             , actor->GetDisplayFullName()
-            , roleList.find(formID)->second);
+            , roleList.find(formID)->second.role);
     else
-        Log("[Puppeteer] {:x} | {} "
+        Log("[Puppeteer] {:x} | {}"
             , formID
-            , actor->GetDisplayFullName());
+            , actor->GetDisplayFullName()
+        );
+
+    Log("[Confidence Data] Current Confidence: {} | Last Confidence Check Dice Roll: {}"
+        , ActorUtils::GetActorValue(formID)->GetActorValue(RE::ActorValue::kConfidence)
+        , roleList.find(formID)->second.confidenceCheckDiceRoll
+    );
 
     auto style = actor->GetActorBase()->GetCombatStyle();
     Log("Offensive: {:.2f} | Defensive: {:.2f} | grpOffensive: {:.2f} | avoidThreatChance: {:.2f}"

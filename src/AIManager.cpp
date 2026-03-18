@@ -14,7 +14,7 @@ void AIManager::LoadSettings()
     secondsPerCycle = GetSecondsPerCycle();
     maxSkipCycles = GetSkipCyclesPerCycle();
     scanDistance = GetScanDistance();
-    rolesMult = GetStyleMults();
+    rolesMult = GetRolesInfo();
 
     CONSOLE_LOG("[Puppeteer] Cycle Duration: {} | Scan Distance: {} | Minimum Actors: {}",
         secondsPerCycle, scanDistance, minimumActors);
@@ -22,6 +22,9 @@ void AIManager::LoadSettings()
 
 void AIManager::Initialize()
 {
+    //seed rand
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
     std::jthread([] {
         player = RE::PlayerCharacter::GetSingleton();
         // Wait until player is fully loaded
@@ -46,7 +49,10 @@ void AIManager::Initialize()
             {
                 if (console->IsMenuOpen("Console"))
                 {
-                    consoleUtils::inspectCBStyleOfSelected({});
+                    if (activeSession)
+                        consoleUtils::inspectCBStyleOfSelected(activeSession->extractCurrentEnemies());
+                    else
+                        consoleUtils::inspectCBStyleOfSelected({});
                 }
             }
 
@@ -69,7 +75,7 @@ void AIManager::Update()
             CONSOLE_LOG("[Puppeteer] Combat ended");
             activeSession.reset();
             activeTracker.reset();
-            all_enemies.clear();
+            //all_enemies.clear();
         }
 
         return;
@@ -91,13 +97,13 @@ void AIManager::Update()
         if (!activeSession)
         {
             CONSOLE_LOG("[Puppeteer] Combat started");
-            activeSession = std::make_unique<CombatSession>(cfg, all_enemies);
-            activeTracker = std::make_unique<dmgTracker>(all_enemies);
+            activeSession = std::make_unique<CombatSession>();
+            activeTracker = std::make_unique<dmgTracker>();
         }
 
-        if (!all_enemies.empty() && activeTracker)
+        if (/*!all_enemies.empty() &&*/ activeTracker)
         {
-            activeTracker->Tick(dmgFlags, now, activeSession->extractModifiedCmbs());
+            activeTracker->Tick(dmgFlags, player);
         }
 
 #pragma region Per Cycle
@@ -111,7 +117,7 @@ void AIManager::Update()
 
         if (dmgFlags[Flag::IsInstantKilled])
         {
-            CONSOLE_LOG("[Puppeteer][AIManager] Hesitation cycle start.");
+            CONSOLE_LOG("[Puppeteer] Hesitation cycle start.");
             secondsPerCycle = ConfigLoader::GetDeathHesitationDuration();
         }
         else
@@ -122,10 +128,9 @@ void AIManager::Update()
     
         if (activeSession)
         {   
-            activeSession->Tick(cfg, dmgFlags);
+            activeSession->Tick(player, cfg, dmgFlags);
             dmgFlags.Reset();
-            all_enemies = activeSession->extractRoles();
-            activeTracker->UpdateList(all_enemies); 
+            activeTracker->UpdateList(activeSession->extractCurrentEnemies());
         }
             
     });

@@ -11,17 +11,18 @@
 #include "core_modules/ConsoleUtils.h"
 #include "cmbStl_modules/CombatStyleManager.h"
 #include "DamageTracker/DmgFlags.h"
+#include "ConfidenceModules/ConfidenceChecks.h"
 
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
 class CombatSession
 {
 public:
-    explicit CombatSession(const PuppeteerConfig& cfg, std::vector<RE::FormID>& a_list);
+    explicit CombatSession();
     ~CombatSession();
 
     // Called every AIManager cycle while combat is active
-    void Tick(const PuppeteerConfig& cfg, const FlagSet& dmgFlags);
+    void Tick(RE::PlayerCharacter*& player, const PuppeteerConfig& cfg, const FlagSet& dmgFlags);
     void AssignRolesAndTrack(const PuppeteerConfig& cfg);
 
     // True if the session should continue running
@@ -32,13 +33,13 @@ public:
         return player && player->IsInCombat();
     }
 
-    std::vector<RE::FormID> extractRoles();
-    const std::unordered_map< RE::FormID, combatStyleProf::mults>& extractModifiedCmbs();
+    const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& extractCurrentEnemies();
 
 private:
     //Core references
     RE::PlayerCharacter* player;
     CombatStyleManager CSManager;
+    ConfidenceChecks CFDManager;
 
     //Enemy tracking
     std::vector<RE::FormID> enemies;
@@ -54,6 +55,7 @@ private:
 
     // Combat style cache
     CombatStyle::profileCollection profCollection;
+    std::unordered_map<RE::FormID, CombatData::npcCombatInfo> combatRecord;
 
     //killRecord roleKills;
 };

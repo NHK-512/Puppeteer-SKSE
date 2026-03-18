@@ -39,11 +39,13 @@ set(sources
     src/utils/roles/Caster.cpp
     src/utils/cmbStl_modules/CombatStyleManager.cpp
     src/utils/cmbStl_modules/CombatStyleProfiles.cpp
+    src/utils/ConfidenceModules/ConfidenceChecks.cpp
 )
 set(headers
     src/PCH.h
     src/utils/DamageTracker/DmgFlags.h
     src/utils/DamageTracker/DmgTracker.h
+    src/utils/core_modules/CombatData.h
     src/utils/core_modules/EnemyScanner.h
     src/utils/core_modules/NearbyAggroedActors.h
     src/utils/core_modules/ActorUtils.h
@@ -56,6 +58,7 @@ set(headers
     src/utils/roles/Caster.h
     src/utils/cmbStl_modules/CombatStyleManager.h
     src/utils/cmbStl_modules/CombatStyleProfiles.h
+    src/utils/ConfidenceModules/ConfidenceChecks.h
 )
 
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "../core_modules/CombatData.h"
 #include <nlohmann/json.hpp>
 #include "../cmbStl_modules/CombatStyleManager.h"
 #include "../cmbStl_modules/CombatStyleProfiles.h"
@@ -7,7 +8,9 @@
 namespace Leader
 {
 	void WriteDefaultProfileToJSON(nlohmann::json& j);
-	void GetCombatProfile(combatStyleProf::mults& prof);
 	void Execute(RE::Actor* actor);
-    bool AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs, RE::Actor*& leader);
+    bool AssignRole(
+		RE::Actor*& actor, 
+		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs,
+		RE::Actor*& leader);
 }

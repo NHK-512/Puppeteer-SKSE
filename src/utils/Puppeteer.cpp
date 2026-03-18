@@ -10,8 +10,11 @@ bool isRangerOrVanguard(const std::unordered_map<RE::FormID, char>& roleList, RE
     return 1;
 }
 
-//std::unordered_map<RE::FormID, char> 
-void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs, std::unordered_map<RE::FormID, char>& assignedNPCs)
+void Puppeteer::AssignRoles(
+    const std::vector<RE::FormID>& npcIDs, 
+    //std::unordered_map<RE::FormID, char>& assignedNPCs
+    std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs
+)
 {
     if (npcIDs.empty())
         return;
@@ -42,21 +45,14 @@ void Puppeteer::AssignRoles(const std::vector<RE::FormID>& npcIDs, std::unordere
         if (Caster::AssignRole(actor, assignedNPCs)) continue;
         if (Vanguard::AssignRole(actor, assignedNPCs)) continue;
         //fallback if NPC don't fit with any role
-        if(assignedNPCs.find(actor->GetFormID()) == assignedNPCs.end())
-            assignedNPCs[actor->GetFormID()] = 'V';
+        if (assignedNPCs.find(actor->GetFormID()) == assignedNPCs.end())
+            assignedNPCs[actor->GetFormID()].role = 'V';
     }
-
-    // --- Assign Leader --
-    //for (auto* actor : hostiles) {
-    //    if (!leader || Leader::comparator(actor, leader)) {
-    //        leader = actor;
-    //    }
-    //} //thanks for the suggested code, DavidJCobb
 
     //fallback if leader is not found
     if (!leader)
         leader = *hostiles.begin();
-    assignedNPCs[leader->GetFormID()] = 'L';
+    assignedNPCs[leader->GetFormID()].role = 'L';
 }
 
 bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
@@ -79,34 +75,22 @@ bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
     return 0;
 }
 
-void initSurvivalTimeMap(const std::unordered_map<RE::FormID, char>& roles)
-{
-    using namespace Puppeteer;
-    if (!survivalTimes.empty())
-        survivalTimes.clear();
-
-    for (const auto& i : roles) {
-        survivalTimes.push_back({ i.first, 0, 0 });
-    }
-}
-
-//void handleHesitation(const std::unordered_map<RE::FormID, char>& roles, int second, int cycleDuration)
+//void initSurvivalTimeMap(const std::unordered_map<RE::FormID, char>& roles)
 //{
-//    int hesitationDuration = ConfigLoader::GetDeathHesitationDuration();
-//    if (
-//        (cycleDuration - second) <= hesitationDuration
-//        && hesitationDuration >= 0
-//        ) return; //exit if there's no time left in cycle
+//    using namespace Puppeteer;
+//    if (!survivalTimes.empty())
+//        survivalTimes.clear();
 //
-//    //static bool isActive = false;
-//
-//    if (EnemyScanner::isOneEnemyInstantKilled(Puppeteer::survivalTimes))
-//        CONSOLE_LOG("[Puppeteer] Group size after instant kill: {:d}", Puppeteer::survivalTimes.size());
-//        //ActorUtils::flashMultiplier(roles, "fallback");
+//    for (const auto& i : roles) {
+//        survivalTimes.push_back({ i.first, 0, 0 });
+//    }
 //}
 
 #pragma region Ranger Utilities
-void Puppeteer::rangerKeepDistance(const std::unordered_map<RE::FormID, char>& roles, RE::PlayerCharacter* player)
+void Puppeteer::rangerKeepDistance(
+    const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
+    //const std::unordered_map<RE::FormID, char>& roles, 
+    RE::PlayerCharacter*& player)
 {
     std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
     if (rangers.empty() ||
@@ -224,7 +208,7 @@ RE::TESAmmo* getArrowRefFromRangerCorpse_2(RE::Actor* aliveActor, std::vector<RE
     return corpse->GetCurrentAmmo();
 }
 
-void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
+void RangerCheckAndReplace(std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles)
 {
     auto vangList = ActorUtils::extractActorsFromRoles(roles, 'V');
     auto rangList = ActorUtils::extractActorsFromRoles(roles, 'R');
@@ -258,7 +242,7 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
     auto vangID = vang->GetFormID();
     if (roles.find(vangID) != roles.end())
     {
-        roles.find(vangID)->second = 'R';
+        roles.find(vangID)->second.role = 'R';
         //CONSOLE_LOG("Reassignment complete");
     }
     else
@@ -319,11 +303,12 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, char>& roles)
 #pragma endregion
 
 void Puppeteer::executeTactics(
-    std::unordered_map<RE::FormID, char>& roles, 
-    RE::PlayerCharacter* a_player
+    //std::unordered_map<RE::FormID, char>& roles, 
+    std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
+    RE::PlayerCharacter*& a_player
 )
 {
-    initSurvivalTimeMap(roles);
+    //initSurvivalTimeMap(roles);
     if (ConfigLoader::GetRangTakeCoverFeature())
     {
         Puppeteer::rangerKeepDistance(roles, a_player);

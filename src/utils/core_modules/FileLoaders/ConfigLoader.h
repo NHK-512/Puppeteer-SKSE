@@ -39,7 +39,7 @@ namespace ConfigLoader
 
 	bool GetEnabledLogs();
 
-	json GetStyleMults();
+	json GetRolesInfo();
 
 	bool GetRangTakeCoverFeature();
 
@@ -47,4 +47,6 @@ namespace ConfigLoader
 
 	int GetDeathHesitationDuration();
 	int GetInstantKillTime();
+
+	int GetGlobalConfidenceDownChance();
 }

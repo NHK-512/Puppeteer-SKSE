@@ -16,8 +16,3 @@ bool FlagSet::operator[](Flag f) const
 {
     return data[static_cast<size_t>(f)];
 }
-
-//bool& dmgFlags::operator[](Flag f)
-//{
-//    return data[static_cast<size_t>(f)];
-//}

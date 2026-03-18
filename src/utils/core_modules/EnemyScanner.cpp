@@ -17,7 +17,8 @@ void EnemyScanner::GetHostileNPCsNearPlayer(float radius, std::vector<RE::FormID
         if (!actor || actor == player)
             continue;
 
-        if (!actor->GetRace()->GetPlayable())
+        if (!actor->GetRace()->GetPlayable() && 
+            std::strstr(actor->GetDisplayFullName(),"Vampire") == nullptr) //support for vampires
             continue;
 
         if (!actor->IsHostileToActor(player))

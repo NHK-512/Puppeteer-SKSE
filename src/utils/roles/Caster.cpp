@@ -10,9 +10,10 @@ void Caster::WriteDefaultProfileToJSON(nlohmann::json& j)
 	j["roles"]["Caster"]["flank"] = 0.25f;
 	j["roles"]["Caster"]["fallback"] = 0.95f;
 	j["roles"]["Caster"]["stalk"] = 0.6f;
+	j["roles"]["Caster"]["ConfidenceDownChance"] = 0.7f;
 }
 
-bool Caster::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs)
+bool Caster::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs)
 {
 	if (!actor)
 		return false;
@@ -27,7 +28,7 @@ bool Caster::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>&
 	if ((left && left->As<RE::SpellItem>()) ||
 		(right && right->As<RE::SpellItem>()))
 	{
-		assignedNPCs[actor->GetFormID()] = 'C';
+		assignedNPCs[actor->GetFormID()].role = 'C';
 		return true;
 	}
 	

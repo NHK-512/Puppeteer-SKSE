@@ -82,21 +82,22 @@ combatStyleProf::mults CombatStyleManager::AssignCS(RE::TESNPC* npc, combatStyle
 
 void CombatStyleManager::AssignAndCache
 (
-	const std::unordered_map<RE::FormID, char>& roleList,
-	CombatStyle::profileCollection &collection,
+	//const std::unordered_map<RE::FormID, char>& roleList,
+	//CombatStyle::profileCollection &collection,
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
 	const json& jsonStyleSettings
 )
 {
-	if (roleList.size() < ConfigLoader::GetMinimumActors())
+	if (combatRecord.size() < ConfigLoader::GetMinimumActors())
 		return;
 
 	configData = jsonStyleSettings;
 
-	for (auto i = roleList.begin(); i != roleList.end(); i++)
+	for (auto i = combatRecord.begin(); i != combatRecord.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
 
-		#pragma region Safety Checks
+#pragma region Safety Checks
 		if (!npc) continue;
 		if (npc && (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded())) continue;
 		auto actorBase = npc->GetActorBase();
@@ -107,23 +108,53 @@ void CombatStyleManager::AssignAndCache
 
 		//Caching original styles (will not overwrite existing original style 
 		// on the second cycle onwards
-		if (!collection.original.contains(i->first))
-			collection.original[i->first] = combatStyleProf::initializeGen(cmbStyle);
+		if (i->second.original.initialized == false)
+		{
+			i->second.original = combatStyleProf::initializeGen(cmbStyle);
+			i->second.original.initialized = true;
 
-		//assigning and caching modified styles.
-		// Will overwrite existing key's values no matter what
-		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
+			//assigning and caching modified styles.
+			// Will overwrite existing key's values no matter what
+			i->second.modified = AssignCS(actorBase, i->second.original, i->second.role);
+		}
 	}
+
+//	for (auto i = roleList.begin(); i != roleList.end(); i++)
+//	{
+//		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
+//
+//		#pragma region Safety Checks
+//		if (!npc) continue;
+//		if (npc && (npc->IsDeleted() || npc->IsDisabled() || !npc->Is3DLoaded())) continue;
+//		auto actorBase = npc->GetActorBase();
+//		if (!actorBase) continue;
+//		auto cmbStyle = actorBase->GetCombatStyle();
+//		if (!cmbStyle) continue;
+//#pragma endregion
+//
+//		//Caching original styles (will not overwrite existing original style 
+//		// on the second cycle onwards
+//		if (!collection.original.contains(i->first))
+//			collection.original[i->first] = combatStyleProf::initializeGen(cmbStyle);
+//
+//		//assigning and caching modified styles.
+//		// Will overwrite existing key's values no matter what
+//		collection.modified[i->first] = AssignCS(actorBase, collection.original[i->first], i->second);
+//	}
 }
 
 void CombatStyleManager::ReturnCached(
-	const std::unordered_map<RE::FormID, char>& currentRoles,
-	CombatStyle::profileCollection& collection
+	//const std::unordered_map<RE::FormID, char>& currentRoles,
+	//CombatStyle::profileCollection& collection
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord
 )
 {
-	if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
+	//if (currentRoles.empty() || (collection.modified.empty() && collection.original.empty())) return;
+	if (combatRecord.empty()) return;
 
-	for (auto i = currentRoles.begin(); i != currentRoles.end(); i++)
+
+	//for (auto i = currentRoles.begin(); i != currentRoles.end(); i++)
+	for(auto i = combatRecord.begin(); i != combatRecord.end(); i++)
 	{
 		auto npc = RE::TESForm::LookupByID<RE::Actor>(i->first);
 		if (!npc) continue;
@@ -141,21 +172,27 @@ void CombatStyleManager::ReturnCached(
 			CONSOLE_LOG("[Puppeteer] style is invalid, not returning back to owner");
 			continue;
 		}
-		combatStyleProf::setProfileToStyle(collection.original.find(i->first)->second, tmpStyle);
 
-		npcBase->SetCombatStyle(tmpStyle);
+		//Only return the original style when it's initiallized
+		//Otherwise, their original style will all be 0 on the next time this function is ran
+		if (i->second.original.initialized)
+		{
+			combatStyleProf::setProfileToStyle(i->second.original,tmpStyle);
 
-		collection.modified.erase(i->first);
-		collection.original.erase(i->first);
+			npcBase->SetCombatStyle(tmpStyle);
+		}
+
+		combatRecord.erase(i);
 	}
 }
 
 void CombatStyleManager::ReturnCachedSingle(
-	std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, 
+	//std::unordered_map<RE::FormID, combatStyleProf::mults> &cachedList, 
+	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
 	const RE::FormID deadForm)
 {
-	auto deadTarget = cachedList.find(deadForm);
-	if (deadTarget == cachedList.end())
+	auto deadTarget = combatRecord.find(deadForm);
+	if (deadTarget == combatRecord.end())
 		return;
 
 	auto npc = RE::TESForm::LookupByID<RE::Actor>(deadForm);
@@ -165,14 +202,14 @@ void CombatStyleManager::ReturnCachedSingle(
 		if (npcBase)
 		{
 			tmpStyle = CloneCombatStyle(npcBase->GetCombatStyle());
-			combatStyleProf::setProfileToStyle(deadTarget->second, tmpStyle);
+			combatStyleProf::setProfileToStyle(deadTarget->second.original, tmpStyle);
 
 			npcBase->SetCombatStyle(tmpStyle);
 		}
 	}
 	
-
-	cachedList.erase(deadTarget);
+	combatRecord.erase(deadTarget);
+	//cachedList.erase(deadTarget);
 }
 
 void CombatStyleManager::setHesitationValue(float a_value)

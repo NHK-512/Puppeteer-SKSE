@@ -7,6 +7,7 @@
 #include "../Puppeteer.h"
 #include <vector>
 #include <format>
+#include <cstring>
 #define CONSOLE_LOG(...) consoleUtils::Log(__VA_ARGS__)
 
 namespace EnemyScanner

@@ -1,7 +1,7 @@
 #pragma once
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
-
+#include <nlohmann/json.hpp>
 using namespace nlohmann;
 
 namespace combatStyleProf
@@ -25,6 +25,7 @@ namespace combatStyleProf
 		float bashAtk = 0;
 		float bashPatk = 0;
 		float specialAtk = 0;
+		bool initialized = false;
 	};
 
 	//Initializes and save a copy of each value into a profile

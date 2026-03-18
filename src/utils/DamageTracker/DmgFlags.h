@@ -1,5 +1,4 @@
 #pragma once
-//#include <array>
 #include <bitset>
 #include <cstddef>
 
@@ -8,6 +7,8 @@ enum class Flag {
     IsAttackedLongRange,
     IsAttackedShortRange,
     IsInstantKilled,
+    IsPlayerWerewolf,
+    IsPlayerVampireLord,
 
     Count
 };
@@ -22,9 +23,4 @@ struct FlagSet {
     bool Any() const;
     bool None() const;
     bool All() const;
-
-    //std::array<bool, static_cast<size_t>(Flag::Count)> data{};
-
-    //bool& operator[](Flag f);
-    //bool  operator[](Flag f) const;
 };

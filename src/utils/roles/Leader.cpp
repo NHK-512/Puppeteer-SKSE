@@ -9,6 +9,7 @@ void Leader::WriteDefaultProfileToJSON(nlohmann::json& j)
 	j["roles"]["Leader"]["circle"] = 0.05f;
 	j["roles"]["Leader"]["flank"] = 0.45f;
 	j["roles"]["Leader"]["stalk"] = 0.35f;
+    j["roles"]["Leader"]["ConfidenceDownChance"] = 0.3f;
 }
 
 
@@ -66,11 +67,15 @@ bool comparator(RE::Actor* a, RE::Actor* b)
     return dmgA > dmgB;
 }
 
-bool Leader::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs, RE::Actor*& leader)
+bool Leader::AssignRole(
+    RE::Actor*& actor, 
+    std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs,
+    RE::Actor*& leader
+)
 {
 	if (!leader || comparator(actor, leader)) {
 		leader = actor;
-		assignedNPCs[leader->GetFormID()] = 'L';
+		assignedNPCs[leader->GetFormID()].role = 'L';
 		return true;
 	}//thanks for the suggested code, DavidJCobb
 

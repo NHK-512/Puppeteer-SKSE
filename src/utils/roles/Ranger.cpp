@@ -9,9 +9,10 @@ void Ranger::WriteDefaultProfileToJSON(nlohmann::json& j)
     j["roles"]["Ranger"]["grpOffensive"] = 0.5f;
     j["roles"]["Ranger"]["fallback"] = 0.8f;
     j["roles"]["Ranger"]["strafe"] = 0.8f;
+    j["roles"]["Ranger"]["ConfidenceDownChance"] = 0.8;
 }
 
-void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::PlayerCharacter* player)
+void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::PlayerCharacter*& player)
 {
     if (!player || vanguards.empty() || !ranger) return;	
 
@@ -33,7 +34,7 @@ void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Act
 	}
 }
 
-bool Ranger::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>& assignedNPCs)
+bool Ranger::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs)
 {
     const auto inv = actor->GetInventory();
     for (const auto& [item, data] : inv) {
@@ -43,7 +44,7 @@ bool Ranger::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, char>&
         if (const auto weap = item->As<RE::TESObjectWEAP>()) {
             if (weap->HasKeywordString("WeapTypeBow") || weap->HasKeywordString("WeapTypeCrossbow"))
             {
-                assignedNPCs[actor->GetFormID()] = 'R';
+                assignedNPCs[actor->GetFormID()].role = 'R';
                 return true;
             }
         }
