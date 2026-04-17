@@ -1,8 +1,9 @@
 #include "CombatSession.h"
 
-CombatSession::CombatSession()
+CombatSession::CombatSession(std::chrono::steady_clock::time_point startTime)
 {
-
+    combatStart = startTime;
+    CDManager.Load();
 }
 
 CombatSession::~CombatSession()
@@ -15,6 +16,34 @@ CombatSession::~CombatSession()
     );
 
     CFDManager.returnOriginalConfidence(combatRecord);
+
+#pragma region Combat Record Logging
+
+    //Logs the player outcome at combat end
+    if (player && !player->IsDead())  CDManager.SetValue("playerWins", true);
+    else    CDManager.SetValue("playerWins", false);
+
+    //Logs fight duration
+    CDManager.SetValue("duration",
+        std::chrono::duration_cast<std::chrono::seconds>
+        (std::chrono::steady_clock::now() - combatStart).count());
+    
+    //Logs death count
+    int sumDeath = 0;
+    for (const auto& role : rolesDeathCount)
+        sumDeath += role.second;
+    CDManager.SetValue("dead", sumDeath);
+    CDManager.SetValue("ranger", rolesDeathCount.find('R')->second);
+    CDManager.SetValue("vanguard", rolesDeathCount.find('V')->second);
+    CDManager.SetValue("caster", rolesDeathCount.find('C')->second);
+
+    //Logs survivor count
+    //either combatRecord or enemies
+    CDManager.SetValue("alive", combatRecord.size());
+
+    CDManager.CommitRecord();
+
+#pragma endregion
 
     // Explicit cleanup (safe & intentional)
     //currentRoles.clear();
@@ -37,6 +66,15 @@ bool CombatSession::IsValid() const
 const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& CombatSession::extractCurrentEnemies()
 {
     return combatRecord;    
+}
+
+void CombatSession::recordDmgData(const CombatData::dmgData& dmg)
+{
+    //round up to 2 decimal digits
+    CDManager.SetValue("groupDmg", std::round(dmg.totalDmgDealt * 100.0f) / 100.0f);
+    CDManager.SetValue("playerDmg", std::round(dmg.totalDmgTaken * 100.0f) / 100.0f);
+    CDManager.SetValue("melee", std::round(dmg.melee * 100.0f) / 100.0f);
+    CDManager.SetValue("range", std::round(dmg.range * 100.0f) / 100.0f);
 }
 
 void CombatSession::Tick(
@@ -152,6 +190,7 @@ void CombatSession::AssignRolesAndTrack(const PuppeteerConfig& cfg)
     (   combatRecord
     ,   CFDManager
     ,   CSManager
+    ,   rolesDeathCount
     ,   IsPlayerInCombat()
     );
 

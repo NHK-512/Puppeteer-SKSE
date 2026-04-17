@@ -35,6 +35,9 @@ namespace Puppeteer
 		//std::unordered_map<RE::FormID, char>& assignedNPCs
 		std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord
 	);
-	void rangerKeepDistance(const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles, RE::PlayerCharacter*& player);
-	void executeTactics(std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles, RE::PlayerCharacter*& a_player);
+
+	void executeTactics
+	(	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles
+	,	RE::PlayerCharacter*& a_player
+	);
 }

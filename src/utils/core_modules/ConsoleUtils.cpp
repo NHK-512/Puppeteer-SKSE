@@ -75,26 +75,35 @@ void consoleUtils::inspectCBStyleOfSelected
             , actor->GetDisplayFullName()
         );
 
-    Log("[Confidence Data] Current Confidence: {} | Last Confidence Check Dice Roll: {}"
-        , ActorUtils::GetActorValue(formID)->GetActorValue(RE::ActorValue::kConfidence)
-        , roleList.find(formID)->second.confidenceCheckDiceRoll
-    );
+    //auto actorValueOwner = ActorUtils::GetActorValue(formID);
+    if (auto actorValueOwner = ActorUtils::GetActorValue(formID))
+    {
+        Log("[Confidence Data] Current Confidence: {} | Last Confidence Check Dice Roll: {}"
+            , actorValueOwner->GetActorValue(RE::ActorValue::kConfidence)
+            , roleList.find(formID)->second.confidenceCheckDiceRoll
+        );
+    }
 
-    auto style = actor->GetActorBase()->GetCombatStyle();
-    Log("Offensive: {:.2f} | Defensive: {:.2f} | grpOffensive: {:.2f} | avoidThreatChance: {:.2f}"
-        , style->generalData.offensiveMult
-        , style->generalData.defensiveMult
-        , style->generalData.groupOffensiveMult
-        , style->generalData.avoidThreatChance
-    );
+    //auto style = actor->GetActorBase()->GetCombatStyle();
+    if (auto style = actor->GetActorBase()->GetCombatStyle())
+    {
+        Log("Offensive: {:.2f} | Defensive: {:.2f} | grpOffensive: {:.2f} | avoidThreatChance: {:.2f}"
+            , style->generalData.offensiveMult
+            , style->generalData.defensiveMult
+            , style->generalData.groupOffensiveMult
+            , style->generalData.avoidThreatChance
+        );
 
-    Log("Circle: {:.2f} | Flank: {:.2f} | Fallback: {:.2f} | Stalk: {:.2f} | Strafe: {:.2f}"
-        , style->closeRangeData.circleMult
-        , style->closeRangeData.flankDistanceMult
-        , style->closeRangeData.fallbackMult
-        , style->closeRangeData.stalkTimeMult
-        , style->longRangeData.strafeMult
-    );
+        Log("Circle: {:.2f} | Flank: {:.2f} | Fallback: {:.2f} | Stalk: {:.2f} | Strafe: {:.2f}"
+            , style->closeRangeData.circleMult
+            , style->closeRangeData.flankDistanceMult
+            , style->closeRangeData.fallbackMult
+            , style->closeRangeData.stalkTimeMult
+            , style->longRangeData.strafeMult
+        );
+    }
+
+    CONSOLE_LOG("Distance from player: {:.2f}", ActorUtils::GetDistanceBetweenTargets(actor, RE::PlayerCharacter::GetSingleton()));
     
     cachedTarget = target;
 }

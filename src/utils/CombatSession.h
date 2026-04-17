@@ -7,7 +7,7 @@
 #include "Puppeteer.h"
 #include "core_modules/EnemyScanner.h"
 #include "core_modules/FileLoaders/ConfigLoader.h"
-//#include "core_modules/FileLoaders/BattleRecord.h"
+#include "core_modules/FileLoaders/CombatRecord.h"
 #include "core_modules/ConsoleUtils.h"
 #include "cmbStl_modules/CombatStyleManager.h"
 #include "DamageTracker/DmgFlags.h"
@@ -18,7 +18,7 @@
 class CombatSession
 {
 public:
-    explicit CombatSession();
+    explicit CombatSession(std::chrono::steady_clock::time_point startTime);
     ~CombatSession();
 
     // Called every AIManager cycle while combat is active
@@ -35,11 +35,14 @@ public:
 
     const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& extractCurrentEnemies();
 
+    void recordDmgData(const CombatData::dmgData& dmg);
+
 private:
     //Core references
     RE::PlayerCharacter* player;
     CombatStyleManager CSManager;
     ConfidenceChecks CFDManager;
+    CombatDataManager CDManager;
 
     //Enemy tracking
     std::vector<RE::FormID> enemies;
@@ -57,5 +60,7 @@ private:
     CombatStyle::profileCollection profCollection;
     std::unordered_map<RE::FormID, CombatData::npcCombatInfo> combatRecord;
 
-    //killRecord roleKills;
+    //Combat Record
+    std::chrono::steady_clock::time_point combatStart;
+    std::unordered_map<char, int> rolesDeathCount = {{'R', 0}, {'V', 0}, {'C', 0}};
 };

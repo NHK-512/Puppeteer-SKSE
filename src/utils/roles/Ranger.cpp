@@ -1,6 +1,3 @@
-// roles/Ranger.cpp
-//#include <thread>
-//#include <chrono>
 #include "Ranger.h"
 #include <RE/Skyrim.h>
 
@@ -10,28 +7,6 @@ void Ranger::WriteDefaultProfileToJSON(nlohmann::json& j)
     j["roles"]["Ranger"]["fallback"] = 0.8f;
     j["roles"]["Ranger"]["strafe"] = 0.8f;
     j["roles"]["Ranger"]["ConfidenceDownChance"] = 0.8;
-}
-
-void Ranger::KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::PlayerCharacter*& player)
-{
-    if (!player || vanguards.empty() || !ranger) return;	
-
-    auto playerPos = player->GetPosition();
-
-    // Find the furthest vanguard distance
-    float maxVanguardDistance = 0.0f;
-    for (auto* vg : vanguards) {
-        if (!vg) continue;
-        float dist = vg->GetPosition().GetDistance(playerPos);
-        if (dist > maxVanguardDistance)
-            maxVanguardDistance = dist;
-    }
-
-    // Check each ranger
-    float dist = ranger->GetPosition().GetDistance(playerPos);
-	if (dist < maxVanguardDistance) {
-		ranger->InitiateFlee(player, 1, 1, 1, nullptr, nullptr, maxVanguardDistance * 10, maxVanguardDistance * 15);
-	}
 }
 
 bool Ranger::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs)

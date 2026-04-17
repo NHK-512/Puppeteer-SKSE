@@ -58,7 +58,7 @@ void AIManager::Initialize()
 
             Update();
         }
-        }).detach();
+    }).detach();
 }
 
 void AIManager::Update()
@@ -73,8 +73,9 @@ void AIManager::Update()
         if (activeSession)
         {
             CONSOLE_LOG("[Puppeteer] Combat ended");
-            activeSession.reset();
+            activeSession->recordDmgData(activeTracker->getTotalDmgData());
             activeTracker.reset();
+            activeSession.reset();  
             //all_enemies.clear();
         }
 
@@ -97,8 +98,8 @@ void AIManager::Update()
         if (!activeSession)
         {
             CONSOLE_LOG("[Puppeteer] Combat started");
-            activeSession = std::make_unique<CombatSession>();
-            activeTracker = std::make_unique<dmgTracker>();
+            activeSession = std::make_unique<CombatSession>(now);
+            activeTracker = std::make_unique<dmgTracker>(player);
         }
 
         if (/*!all_enemies.empty() &&*/ activeTracker)

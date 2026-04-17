@@ -31,7 +31,7 @@ set(sources
     src/utils/core_modules/ActorUtils.cpp
     src/utils/core_modules/ConsoleUtils.cpp
     src/utils/core_modules/FileLoaders/ConfigLoader.cpp
-    #src/utils/core_modules/FileLoaders/BattleRecord.cpp
+    src/utils/core_modules/FileLoaders/CombatRecord.cpp
     src/utils/roles/Leader.cpp
     src/utils/roles/Ranger.cpp
     src/utils/roles/Vanguard.cpp
@@ -51,7 +51,7 @@ set(headers
     src/utils/core_modules/ActorUtils.h
     src/utils/core_modules/ConsoleUtils
     src/utils/core_modules/FileLoaders/ConfigLoader.h
-    #src/utils/core_modules/FileLoaders/BattleRecord.h
+    src/utils/core_modules/FileLoaders/CombatRecord.h
     src/utils/roles/Leader.h
     src/utils/roles/Ranger.h
     src/utils/roles/Vanguard.h

@@ -71,6 +71,7 @@ void ActorUtils::DeadActorsCleanup(
 	std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
 	ConfidenceChecks& CFDMananager,
 	CombatStyleManager& CSManager,
+	std::unordered_map<char, int>& deathCount,
 	bool IsInCombat
 )
 {
@@ -91,12 +92,34 @@ void ActorUtils::DeadActorsCleanup(
 			(actor->IsDead() ||IsValidForDelete(actor))
 		)
 		{
+			//Returns Confidence stat
 			CFDMananager.returnSingleOriginalConfidence
 			(	i->first
 			,	i->second.originalConfidence
 			,	i->second.modifiedConfidence
 			);
+
+			//Returns original Combat Styles
 			CSManager.ReturnCachedSingle(combatRecord, i->first);
+
+			//Logs role specific deaths
+			switch (i->second.role)
+			{
+			case 'R':
+				if (deathCount.contains('R'))
+					deathCount['R']++;
+				break;
+			case 'V':
+				if (deathCount.contains('V'))
+					deathCount['V']++;
+				break;
+			case 'C':
+				if (deathCount.contains('C'))
+					deathCount['C']++;
+				break;
+			default:
+				break;
+			}
 
 			//Failsafe check to ensure deletion from Record
 			if(combatRecord.contains(i->first))
@@ -153,6 +176,88 @@ bool ActorUtils::isEnemyVampire(RE::FormID formID)
 	if (!actor->Is3DLoaded() && actor->IsDead())	return false;
 
 	if (std::strstr(actor->GetDisplayFullName(), "Vampire") == nullptr)
+		return false;
+
+	return true;
+}
+
+float ActorUtils::GetDistanceFurthestVanguard(
+	const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles
+,	RE::PlayerCharacter*& player
+)
+{
+	float maxDistance = 0.0f;
+	for (const auto& npc : roles)
+	{
+		//Only include Vanguards
+		if (npc.second.role != 'V') continue;
+		auto* form = RE::TESForm::LookupByID(npc.first);
+		if (!form) continue;
+		auto actor = form->As<RE::Actor>();
+		if (!actor) continue;
+		if (actor->IsDead())	continue;
+
+		float dist = ActorUtils::GetDistanceBetweenTargets(actor, player);
+		if (dist > maxDistance) maxDistance = dist;
+	}
+
+	return maxDistance;
+}
+
+RE::AIProcess* GetAIProcess(RE::Actor* a_actor)
+{
+	if (!a_actor)	return nullptr;
+
+	auto& runtime = a_actor->GetActorRuntimeData();
+
+	auto process = runtime.currentProcess;
+	if (!process)	return nullptr;
+
+	return process;
+}
+
+RE::HitData* ActorUtils::GetLastHitData(RE::Actor* a_actor)
+{
+	auto process = GetAIProcess(a_actor);
+
+	auto middleHigh = process->middleHigh;
+	if (!middleHigh)	return nullptr;
+
+	auto hitData = middleHigh->lastHitData;
+	if (!hitData)	return nullptr;
+
+	return hitData;
+}
+
+RE::AttackData* ActorUtils::GetAttackData(RE::Actor* a_actor)
+{
+	auto process = GetAIProcess(a_actor);
+
+	auto high = process->high;
+	if (!high)	return nullptr;
+
+	auto atkData = high->attackData.get();
+	if (!atkData)	return nullptr;
+
+	return &atkData->data;
+}
+
+float ActorUtils::GetDistanceBetweenTargets(RE::Actor* a_self, RE::Actor* a_target)
+{
+	if (!a_self) return 0.0f;
+	if (!a_target) return 0.0f;
+	auto selfPosition = a_self->GetPosition();
+	
+	return a_target->GetPosition().GetDistance(selfPosition);
+}
+
+bool ActorUtils::isWithinMeleeRange(RE::Actor* a_self, RE::Actor* a_target, const float& meleeDist)
+{
+	if (!a_self)	return false;
+	if (!a_target)	return false;
+
+	//if distance is greater than melee distance
+	if (GetDistanceBetweenTargets(a_self, a_target) > meleeDist)
 		return false;
 
 	return true;

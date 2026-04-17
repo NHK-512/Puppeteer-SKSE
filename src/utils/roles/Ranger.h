@@ -10,6 +10,6 @@ namespace Ranger
 {
 	void WriteDefaultProfileToJSON(nlohmann::json& j);
 	//Core function for rangers to prioritize distance
-	void KeepDistanceAwayPlayer(RE::Actor* ranger, const std::vector<RE::Actor*>& vanguards, RE::PlayerCharacter*& player);
+	//void KeepDistanceAwayPlayer(RE::Actor* ranger, const float& minDistance, const float& distanceOfSelf);//, const std::vector<RE::Actor*>& vanguards, RE::PlayerCharacter*& player);
 	bool AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs);
 }

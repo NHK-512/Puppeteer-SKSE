@@ -12,20 +12,18 @@ bool isRangerOrVanguard(const std::unordered_map<RE::FormID, char>& roleList, RE
 
 void Puppeteer::AssignRoles(
     const std::vector<RE::FormID>& npcIDs, 
-    //std::unordered_map<RE::FormID, char>& assignedNPCs
     std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs
 )
 {
     if (npcIDs.empty())
         return;
-    //std::unordered_map<RE::FormID, char> roleList;
+
     std::vector<RE::Actor*> hostiles;
 
     for (auto formID : npcIDs) {
         auto* form = RE::TESForm::LookupByID(formID);
         if (form) {
-            auto actor = form->As<RE::Actor>();
-            //if (auto* actor = form->As<RE::Actor>() && actor-) 
+            auto actor = form->As<RE::Actor>(); 
             if(actor && (actor->Is3DLoaded() && !actor->IsDead()))
             {
                 hostiles.push_back(actor);
@@ -75,37 +73,27 @@ bool ifRoleIsDead(const std::vector<RE::Actor*>& actors)
     return 0;
 }
 
-//void initSurvivalTimeMap(const std::unordered_map<RE::FormID, char>& roles)
-//{
-//    using namespace Puppeteer;
-//    if (!survivalTimes.empty())
-//        survivalTimes.clear();
-//
-//    for (const auto& i : roles) {
-//        survivalTimes.push_back({ i.first, 0, 0 });
-//    }
-//}
-
 #pragma region Ranger Utilities
-void Puppeteer::rangerKeepDistance(
+void rangerKeepDistance(
     const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
-    //const std::unordered_map<RE::FormID, char>& roles, 
-    RE::PlayerCharacter*& player)
+    float minDistance,
+    RE::PlayerCharacter*& player
+)
 {
-    std::vector<RE::Actor*> rangers = ActorUtils::extractActorsFromRoles(roles, 'R');
-    if (rangers.empty() ||
-        ifRoleIsDead(rangers))
+    for (const auto& npc : roles)
     {
-        return;
-    }
+        //Only include Rangers
+        if (npc.second.role != 'R') continue;
+        auto* form = RE::TESForm::LookupByID(npc.first);
+        if (!form) continue;
+        auto actor = form->As<RE::Actor>();
+        if (!actor) continue;
+        if (actor->IsDead())	continue;
 
-    for (int iR = 0; iR < rangers.size(); iR++)
-    {
-        Ranger::KeepDistanceAwayPlayer(
-            rangers[iR],
-            ActorUtils::extractActorsFromRoles(roles, 'V'),
-            player
-        );
+        float dist = ActorUtils::GetDistanceBetweenTargets(actor, player);
+        if (dist > minDistance) continue;
+
+        actor->InitiateFlee(player, 1, 1, 1, nullptr, nullptr, minDistance, minDistance * 1.2);
     }
 }
 
@@ -302,16 +290,20 @@ void RangerCheckAndReplace(std::unordered_map<RE::FormID, CombatData::npcCombatI
 
 #pragma endregion
 
-void Puppeteer::executeTactics(
-    //std::unordered_map<RE::FormID, char>& roles, 
-    std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles,
-    RE::PlayerCharacter*& a_player
+void Puppeteer::executeTactics
+(   std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles
+,   RE::PlayerCharacter*& a_player
 )
 {
-    //initSurvivalTimeMap(roles);
     if (ConfigLoader::GetRangTakeCoverFeature())
     {
-        Puppeteer::rangerKeepDistance(roles, a_player);
+        //Calc the max vanguard distance once a cycle here
+        
+        rangerKeepDistance
+        (   roles
+        ,   ActorUtils::GetDistanceFurthestVanguard(roles, a_player)
+        ,   a_player
+        );
         //CONSOLE_LOG("[Puppeteer] Ranger role is taking cover!");
     }
     if (ConfigLoader::GetVangReplaceRang())

@@ -11,11 +11,12 @@
 class dmgTracker
 {
 public:
-	dmgTracker();
+	dmgTracker(RE::PlayerCharacter*& player);
 	~dmgTracker();
 
 	void UpdateList(const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& enemies);
 	void Tick(FlagSet& outputFlags, RE::PlayerCharacter*& player);
+	CombatData::dmgData getTotalDmgData();
 
 private:
 	struct HPperNPC
@@ -27,6 +28,9 @@ private:
 		std::optional<std::chrono::steady_clock::time_point> firstHitTime;
 	};
 
+	RE::PlayerCharacter* player = nullptr;
+	float playerLastHP = 0.0f;
+
 	std::unordered_map<RE::FormID, HPperNPC> healthPool;
 	int instantKillTime = 0;
 	bool instantKillDetection(RE::Actor* actor, HPperNPC& HPrecord); 
@@ -36,6 +40,8 @@ private:
 
 	bool isPlayerWerewolfOnce = false;
 	bool isPlayerVampireLordOnce = false;
-	void isPlayerVampireLordOrWerewolf(FlagSet& outputFlags, RE::PlayerCharacter*& player);
+	void isPlayerVampireLordOrWerewolf(FlagSet& outputFlags);//, RE::PlayerCharacter*& player);
+
+	CombatData::dmgData damageData;
 };
 

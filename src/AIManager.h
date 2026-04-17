@@ -6,6 +6,7 @@
 #include "utils/core_modules/EnemyScanner.h"
 #include "utils/core_modules/ConsoleUtils.h"
 #include "utils/core_modules/FileLoaders/ConfigLoader.h"
+#include "utils/core_modules/FileLoaders/CombatRecord.h"
 #include "utils/Puppeteer.h"
 #include "utils/CombatSession.h"
 #include "utils/DamageTracker/DmgFlags.h"

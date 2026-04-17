@@ -21,6 +21,7 @@ namespace ActorUtils {
         std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& combatRecord,
         ConfidenceChecks& CFDMananager,
         CombatStyleManager& CSManager,
+        std::unordered_map<char, int>& deathCount,
         bool IsInCombat
     );
 
@@ -33,4 +34,16 @@ namespace ActorUtils {
 
     bool isEnemySilverHand(RE::FormID formID);
     bool isEnemyVampire(RE::FormID formID);
+
+    float GetDistanceBetweenTargets(RE::Actor* a_target, RE::Actor* player);
+    //Gets the distance between the player and the furthest vanguard in the group
+    float GetDistanceFurthestVanguard
+    (   const std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& roles
+    ,   RE::PlayerCharacter*& player
+    );
+
+    RE::HitData* GetLastHitData(RE::Actor* a_actor);
+    RE::AttackData* GetAttackData(RE::Actor* a_actor);
+
+    bool isWithinMeleeRange(RE::Actor* a_self, RE::Actor* a_target, const float& dist);
 }
