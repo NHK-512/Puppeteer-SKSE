@@ -9,7 +9,7 @@ void Vanguard::WriteDefaultProfileToJSON(nlohmann::json& j)
 	j["roles"]["Vanguard"]["grpOffensive"] = 0.15f;
 	j["roles"]["Vanguard"]["circle"] = 0.65f;
 	j["roles"]["Vanguard"]["stalk"] = 0.05f;
-    j["roles"]["Vanguard"]["ConfidenceDownChance"] = 0.5;
+    j["roles"]["Vanguard"]["ConfidenceDownChance"] = 50;
 }
 
 bool Vanguard::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs)

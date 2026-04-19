@@ -262,3 +262,14 @@ bool ActorUtils::isWithinMeleeRange(RE::Actor* a_self, RE::Actor* a_target, cons
 
 	return true;
 }
+
+bool ActorUtils::isPlayerHPat0(RE::PlayerCharacter* a_player)
+{
+	if (!a_player)	return false;
+
+	auto actorValue = GetActorValue(a_player->GetFormID());
+	auto hp = actorValue->GetActorValue(RE::ActorValue::kHealth);
+	if (hp == 0.0f)	return true;
+
+	return false;
+}

@@ -19,6 +19,7 @@ class CombatSession
 {
 public:
     explicit CombatSession(std::chrono::steady_clock::time_point startTime);
+    explicit CombatSession() {}
     ~CombatSession();
 
     // Called every AIManager cycle while combat is active
@@ -63,4 +64,5 @@ private:
     //Combat Record
     std::chrono::steady_clock::time_point combatStart;
     std::unordered_map<char, int> rolesDeathCount = {{'R', 0}, {'V', 0}, {'C', 0}};
+    bool isPuppActivated = false;
 };

@@ -6,7 +6,7 @@ void Ranger::WriteDefaultProfileToJSON(nlohmann::json& j)
     j["roles"]["Ranger"]["grpOffensive"] = 0.5f;
     j["roles"]["Ranger"]["fallback"] = 0.8f;
     j["roles"]["Ranger"]["strafe"] = 0.8f;
-    j["roles"]["Ranger"]["ConfidenceDownChance"] = 0.8;
+    j["roles"]["Ranger"]["ConfidenceDownChance"] = 80;
 }
 
 bool Ranger::AssignRole(RE::Actor*& actor, std::unordered_map<RE::FormID, CombatData::npcCombatInfo>& assignedNPCs)

@@ -1,17 +1,21 @@
 #include "ConfigLoader.h"
 
+static json cachedJSON = json::object(); 
+
 void IniDefaultJSON()
 {
 	namespace fs = std::filesystem;
 
-	cachedJSON["General"]["ScanDistance"] = 5000;
+	cachedJSON["General"]["ScanDistance"] = 9000;
 	cachedJSON["General"]["SecondsPerCycle"] = 30;
-	cachedJSON["General"]["SkippedCycleAmount"] = 1;
+	cachedJSON["General"]["SkippedCycleAmount"] = 3;
 	cachedJSON["General"]["MinimumActors"] = 3;
 	cachedJSON["SideFeatures"]["RangerTakeCover"] = true;
 	cachedJSON["SideFeatures"]["VaguardReplaceRanger"] = true;
-	cachedJSON["SideFeatures"]["Hesitation"]["Duration"] = 5;
-	cachedJSON["SideFeatures"]["Hesitation"]["InstantKillTime"] = 3;
+	cachedJSON["SideFeatures"]["RecordCombatData"] = true;
+	cachedJSON["SideFeatures"]["enableLogging"] = false;
+	cachedJSON["SideFeatures"]["Hesitation"]["ReactionDuration"] = 5;
+	cachedJSON["SideFeatures"]["Hesitation"]["InstantKillTime"] = 4;
 
 	Ranger::WriteDefaultProfileToJSON(cachedJSON);
 	Leader::WriteDefaultProfileToJSON(cachedJSON);
@@ -105,6 +109,7 @@ int  ConfigLoader::GetSkipCyclesPerCycle() { return GetValue<int>("General", "Sk
 int  ConfigLoader::GetMinimumActors() { return GetValue<int>("General", "MinimumActors", 3); }
 bool ConfigLoader::GetEnabledLogs() { return GetValue<bool>("General", "enableLogging", true); }
 int  ConfigLoader::GetGlobalConfidenceDownChance() { return GetValue<int>("SideFeatures", "GlobalConfidenceDownChance", -1); }
+bool ConfigLoader::GetRecordCombatData() { return GetValue<bool>("SideFeatures", "RecordCombatData", true); }
 json ConfigLoader::GetRolesInfo() {
 	if (cachedJSON.empty())
 		cachedJSON = LoadConfig();

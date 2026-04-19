@@ -19,29 +19,40 @@ CombatSession::~CombatSession()
 
 #pragma region Combat Record Logging
 
-    //Logs the player outcome at combat end
-    if (player && !player->IsDead())  CDManager.SetValue("playerWins", true);
-    else    CDManager.SetValue("playerWins", false);
+    if (ConfigLoader::GetRecordCombatData())
+    {
+        //Logs the player outcome at combat end
 
-    //Logs fight duration
-    CDManager.SetValue("duration",
-        std::chrono::duration_cast<std::chrono::seconds>
-        (std::chrono::steady_clock::now() - combatStart).count());
-    
-    //Logs death count
-    int sumDeath = 0;
-    for (const auto& role : rolesDeathCount)
-        sumDeath += role.second;
-    CDManager.SetValue("dead", sumDeath);
-    CDManager.SetValue("ranger", rolesDeathCount.find('R')->second);
-    CDManager.SetValue("vanguard", rolesDeathCount.find('V')->second);
-    CDManager.SetValue("caster", rolesDeathCount.find('C')->second);
+        //Option 1 (crashes)
+        if (player && player->IsDead())
+                CDManager.SetValue("playerWins", true);
+        else    CDManager.SetValue("playerWins", false);
 
-    //Logs survivor count
-    //either combatRecord or enemies
-    CDManager.SetValue("alive", combatRecord.size());
+        //Option 2 (testing)(1 crash so far)
+        if (player && ActorUtils::isPlayerHPat0(player))  
+                CDManager.SetValue("playerWins", true);
+        else    CDManager.SetValue("playerWins", false);
 
-    CDManager.CommitRecord();
+        //Logs fight duration
+        CDManager.SetValue("duration",
+            std::chrono::duration_cast<std::chrono::seconds>
+            (std::chrono::steady_clock::now() - combatStart).count());
+
+        //Logs death count
+        int sumDeath = 0;
+        for (const auto& role : rolesDeathCount)
+            sumDeath += role.second;
+        CDManager.SetValue("dead", sumDeath);
+        CDManager.SetValue("ranger", rolesDeathCount.find('R')->second);
+        CDManager.SetValue("vanguard", rolesDeathCount.find('V')->second);
+        CDManager.SetValue("caster", rolesDeathCount.find('C')->second);
+
+        //Logs survivor count
+        //either combatRecord or enemies
+        CDManager.SetValue("alive", combatRecord.size());
+
+        CDManager.CommitRecord();
+    }
 
 #pragma endregion
 
@@ -206,6 +217,10 @@ void CombatSession::AssignRolesAndTrack(const PuppeteerConfig& cfg)
 
         return;
     }
+
+    //necessary to know if Puppeteer is actually activated in this combat session
+    //To prevent logging battles against non-humans
+    if (!isPuppActivated)    isPuppActivated = true;
 
     Puppeteer::AssignRoles(
         enemies,

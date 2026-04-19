@@ -8,7 +8,7 @@
 using namespace nlohmann;
 
 static std::filesystem::file_time_type lastModifiedTime = std::filesystem::file_time_type::min();
-static json cachedJSON = json::object();
+//static json cachedJSON = json::object();
 
 struct PuppeteerConfig
 {
@@ -49,4 +49,6 @@ namespace ConfigLoader
 	int GetInstantKillTime();
 
 	int GetGlobalConfidenceDownChance();
+
+	bool GetRecordCombatData();
 }

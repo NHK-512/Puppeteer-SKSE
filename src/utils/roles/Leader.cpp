@@ -9,7 +9,7 @@ void Leader::WriteDefaultProfileToJSON(nlohmann::json& j)
 	j["roles"]["Leader"]["circle"] = 0.05f;
 	j["roles"]["Leader"]["flank"] = 0.45f;
 	j["roles"]["Leader"]["stalk"] = 0.35f;
-    j["roles"]["Leader"]["ConfidenceDownChance"] = 0.3f;
+    j["roles"]["Leader"]["ConfidenceDownChance"] = 30;
 }
 
 

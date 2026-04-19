@@ -46,4 +46,6 @@ namespace ActorUtils {
     RE::AttackData* GetAttackData(RE::Actor* a_actor);
 
     bool isWithinMeleeRange(RE::Actor* a_self, RE::Actor* a_target, const float& dist);
+
+    bool isPlayerHPat0(RE::PlayerCharacter* a_player);
 }

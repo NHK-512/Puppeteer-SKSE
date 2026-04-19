@@ -8,7 +8,10 @@ void AIManager::LoadSettings()
         return;
     }
 
-    LoadConfig(); //needed for changes after first time loading
+    //needed for changes after first time loading
+    //or if any changes are made to the file during runtime
+    LoadConfig();  
+    
 
     minimumActors = GetMinimumActors();
     secondsPerCycle = GetSecondsPerCycle();
@@ -98,7 +101,10 @@ void AIManager::Update()
         if (!activeSession)
         {
             CONSOLE_LOG("[Puppeteer] Combat started");
-            activeSession = std::make_unique<CombatSession>(now);
+            if(ConfigLoader::GetRecordCombatData())
+                activeSession = std::make_unique<CombatSession>(now);
+            else
+                activeSession = std::make_unique<CombatSession>();
             activeTracker = std::make_unique<dmgTracker>(player);
         }
 
